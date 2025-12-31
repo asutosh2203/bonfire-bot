@@ -43,7 +43,7 @@ export async function POST(req: Request) {
       `;
     }
 
-    const tools: Tool[] = [
+    const tools: any = [
       {
         googleSearch: {}, // 👈 This is all you need. It activates the grounding.
       },
