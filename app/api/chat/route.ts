@@ -12,8 +12,18 @@ export async function POST(req: Request) {
     }
 
     const genAI = new GoogleGenerativeAI(apiKey);
-    const { message, history } = await req.json();
+    const { message, history, userContext } = await req.json();
 
+    // 🏗️ Build the Personalization Prompt
+    let contextPrompt = "";
+    if (userContext) {
+      contextPrompt = `
+      CURRENT TARGET INFO (USE THIS TO ROAST):
+      - Name: ${userContext.name}
+      - Vibe: ${userContext.vibe}
+      - DEEP INSECURITY: ${userContext.insecurity} (Bring this up if they get arrogant).
+      `;
+    }
     const model = genAI.getGenerativeModel({
       model: "gemini-2.5-flash",
       systemInstruction: `
@@ -52,6 +62,8 @@ export async function POST(req: Request) {
       - No "Assistant" talk. No "How can I help?".
       - Keep it short (text message length).
       - Use Emojis.
+
+      ${contextPrompt}
     `,
     });
 

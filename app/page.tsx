@@ -2,8 +2,10 @@
 
 import { useState, useRef, useEffect } from "react";
 import { MessageBubble } from "@/components/chat/MessageBubble";
+import { UserContextModal } from "@/components/bonfire/UserContextModal";
 import { Send, Flame, Info, Eye, EyeOff } from "lucide-react"; //  Added Eye icons
 import { cn } from "@/lib/utils";
+import { UserContext } from "@/lib/types";
 
 type Message = {
   text: string;
@@ -15,6 +17,7 @@ export default function Home() {
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [privacyMode, setPrivacyMode] = useState(false); //  The Toggle State
+  const [userContext, setUserContext] = useState<UserContext | null>(null); // User intro
   const bottomRef = useRef<HTMLDivElement>(null);
 
   const [messages, setMessages] = useState<Message[]>([
@@ -58,6 +61,7 @@ export default function Home() {
         body: JSON.stringify({
           message: input,
           history: visibleHistory, //  Send only clean history
+          userContext,
         }),
       });
 
@@ -72,6 +76,10 @@ export default function Home() {
 
   return (
     <div className="flex flex-col h-screen bg-[#0E1621] text-white mx-auto shadow-2xl overflow-hidden font-sans">
+      {!userContext && (
+        <UserContextModal onSubmit={(ctx) => setUserContext(ctx)} />
+      )}
+
       {/* Header */}
       <div className="px-4 py-3 bg-[#17212B] flex items-center gap-3 shadow-md z-10">
         <div className="relative">
@@ -85,7 +93,7 @@ export default function Home() {
             Bonfire
           </h1>
           <p className="text-xs text-blue-300 font-medium opacity-80">
-            bot • judging you
+            {userContext ? `Target: ${userContext.name}` : "bot • judging you"}
           </p>
         </div>
         <Info
