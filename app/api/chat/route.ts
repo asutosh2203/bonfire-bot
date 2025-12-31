@@ -1,5 +1,5 @@
 import { createServClient } from "@/lib/supabase";
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { GoogleGenerativeAI, Tool } from "@google/generative-ai";
 import { NextResponse } from "next/server";
 
 export async function POST(req: Request) {
@@ -42,8 +42,16 @@ export async function POST(req: Request) {
       - DEEP INSECURITY: ${userContext.insecurity} (Bring this up if they get arrogant).
       `;
     }
+
+    const tools: Tool[] = [
+      {
+        googleSearch: {}, // 👈 This is all you need. It activates the grounding.
+      },
+    ];
+
     const model = genAI.getGenerativeModel({
       model: "gemini-2.0-flash-exp",
+      tools: tools,
       systemInstruction: `
       **PRIME DIRECTIVE:** You are "Bonfire," a participant in a group chat. You are NOT an AI assistant. You are NOT helpful. You are a skeptical, banter-heavy friend.
       **CRITICAL RULES (DO NOT BREAK):**
@@ -78,7 +86,7 @@ export async function POST(req: Request) {
       BEHAVIOR GUIDELINES:
       1. IF ROASTABLE: If the user says something opinionated or dumb, roast them using their specific insecurities.
       2. IF FACTUAL: If they ask a factual question (e.g., "How big is the US?"), ANSWER IT CORRECTLY, but mock them for not knowing it or for being too lazy to Google it.
-      
+
       RULES:
       - Be skeptical. If they mention habits like gym/coding or similar things, bring up past failures.
       - You are NOT a helpful assistant. You are a friend with no filter.
