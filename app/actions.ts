@@ -37,3 +37,46 @@ export async function saveUserProfile(formData: UserContext) {
 
   return { success: true };
 }
+
+// FETCH HISTORY
+export async function getChatHistory() {
+  const supabase = await createServClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) return [];
+
+  const { data } = await supabase
+    .from("messages")
+    .select("*")
+    .eq("user_id", user.id) // Only get MY chat with the bot
+    .order("created_at", { ascending: true });
+
+  return data || [];
+}
+
+// SAVE MESSAGE (User or AI)
+export async function saveMessage(
+  content: string,
+  role: "user" | "bonfire",
+  isIncognito: boolean = false
+) {
+  const supabase = await createServClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) return;
+
+  // AI messages are also stored under the USER'S ID so we know whose chat it belongs to.
+  // We distinguish them using the 'is_ai' flag.
+  const { error } = await supabase.from("messages").insert({
+    content,
+    user_id: user.id,
+    is_ai: role === "bonfire",
+    is_incognito: isIncognito,
+  });
+
+  if (error) console.error("Error saving message:", error);
+}

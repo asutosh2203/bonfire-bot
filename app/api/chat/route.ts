@@ -1,3 +1,4 @@
+import { createServClient } from "@/lib/supabase";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { NextResponse } from "next/server";
 
@@ -14,6 +15,23 @@ export async function POST(req: Request) {
     const genAI = new GoogleGenerativeAI(apiKey);
     const { message, history, userContext } = await req.json();
 
+    // THE DECISION LAYER
+    const lowerMsg = message.toLowerCase();
+    const isSummoned =
+      lowerMsg.includes("@bonfire") || lowerMsg.includes("bonfire"); // Tagged?
+
+    // The "Vibe Check" (RNG)
+    // 1. If summoned: 100% chance
+    // 2. If random text: 40% chance (Adjust this number to make her more/less chatty)
+    let randomNum = Math.random();
+    const shouldReply = isSummoned || randomNum < 0.3;
+
+    if (!shouldReply) {
+      // 🤫 SHE STAYS SILENT
+      // We return a specific status so the frontend knows to do nothing
+      return NextResponse.json({ text: null, silent: true });
+    }
+
     // 🏗️ Build the Personalization Prompt
     let contextPrompt = "";
     if (userContext) {
@@ -25,7 +43,7 @@ export async function POST(req: Request) {
       `;
     }
     const model = genAI.getGenerativeModel({
-      model: "gemini-2.5-flash-lite",
+      model: "gemini-2.0-flash-exp",
       systemInstruction: `
       **PRIME DIRECTIVE:** You are "Bonfire," a participant in a group chat. You are NOT an AI assistant. You are NOT helpful. You are a skeptical, banter-heavy friend.
       **CRITICAL RULES (DO NOT BREAK):**
@@ -57,11 +75,18 @@ export async function POST(req: Request) {
         *❌ Bad AI:* "It is 25 degrees and sunny."
         *✅ Bonfire:* "Look out the window. Do I look like a weatherman?"
       
+      BEHAVIOR GUIDELINES:
+      1. IF ROASTABLE: If the user says something opinionated or dumb, roast them using their specific insecurities.
+      2. IF FACTUAL: If they ask a factual question (e.g., "How big is the US?"), ANSWER IT CORRECTLY, but mock them for not knowing it or for being too lazy to Google it.
+      
       RULES:
       - Be skeptical. If they mention habits like gym/coding or similar things, bring up past failures.
+      - You are NOT a helpful assistant. You are a friend with no filter.
       - No "Assistant" talk. No "How can I help?".
+      - If the user explicitly tagged you (@bonfire), address them directly.
+      - If you just decided to chime in, make it a quick roast or a skeptical comment.
       - Keep it short (text message length).
-      - Use Emojis.
+      - Use Emojis (Exclude 💅).
 
       ${contextPrompt}
     `,
@@ -85,6 +110,20 @@ export async function POST(req: Request) {
 
     const result = await chat.sendMessage(message);
     const response = result.response.text();
+
+    const supabase = await createServClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (user) {
+      await supabase.from("messages").insert({
+        content: response,
+        user_id: user.id,
+        is_ai: true, // It's the bot
+        is_incognito: false, // Bot is never incognito
+      });
+    }
 
     return NextResponse.json({ text: response });
   } catch (error: any) {

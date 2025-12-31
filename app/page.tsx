@@ -9,11 +9,12 @@ import { Send, Flame, Info, Eye, EyeOff, LogOut } from "lucide-react"; //  Added
 import { cn } from "@/lib/utils";
 import { UserContext } from "@/lib/types";
 import { createBrowClient } from "@/lib/supabase/client";
+import { saveUserProfile, getChatHistory, saveMessage } from "@/app/actions";
 
 type Message = {
   text: string;
   sender: "user" | "bonfire";
-  isIncognito?: boolean; //  New flag
+  isIncognito?: boolean;
 };
 
 export default function Home() {
@@ -60,6 +61,18 @@ export default function Home() {
         }
       }
 
+      // GET CHAT HISTORY
+      const history = await getChatHistory();
+      if (history.length > 0) {
+        // Map DB format to UI format
+        const formattedMessages: Message[] = history.map((msg: any) => ({
+          text: msg.content,
+          sender: msg.is_ai ? "bonfire" : "user",
+          isIncognito: msg.is_incognito,
+        }));
+        setMessages(formattedMessages);
+      }
+
       setAuthLoading(false);
     };
 
@@ -101,6 +114,10 @@ export default function Home() {
     setMessages(newHistory);
     setInput("");
 
+    // We don't await this because we want the UI to be snappy.
+    // It runs in the background.
+    saveMessage(input, "user", privacyMode);
+
     //  If Incognito, STOP here. Don't call AI.
     if (privacyMode) {
       return;
@@ -123,6 +140,12 @@ export default function Home() {
       });
 
       const data = await res.json();
+
+      if (data.silent) {
+        setLoading(false); // Stop loading indicator
+        return; // Do nothing else
+      }
+
       setMessages((prev) => [...prev, { text: data.text, sender: "bonfire" }]);
     } catch (error) {
       console.error(error);
@@ -149,7 +172,7 @@ export default function Home() {
         <div className="absolute bottom-0 right-0 w-96 h-96 bg-orange-500/10 rounded-full blur-3xl translate-x-1/2 translate-y-1/2 pointer-events-none" />
 
         <div className="z-10 text-center space-y-8 max-w-md">
-          <div className="w-24 h-24 bg-linear-to-br from-orange-500 to-red-600 rounded-3xl mx-auto flex items-center justify-center shadow-2xl rotate-3">
+          <div className="w-24 h-24 bg-linear-to-br from-orange-500 to-red-600 rounded-3xl mx-auto flex items-center justify-center shadow-2xl transform transition-transform rotate-3 hover:-rotate-3 animate-pulse">
             <Flame size={48} fill="currentColor" className="text-white" />
           </div>
 
@@ -234,7 +257,7 @@ export default function Home() {
       <div className="p-3 bg-[#17212B]">
         {/*  Privacy Mode Indicator */}
         {privacyMode && (
-          <div className="text-xs text-green-400 font-bold mb-2 flex items-center gap-1">
+          <div className="text-xs text-green-400 font-bold mb-2 flex items-center justify-center gap-1 w-full">
             <EyeOff size={12} />
             <span>INCOGNITO ON: Bonfire can't see this.</span>
           </div>
