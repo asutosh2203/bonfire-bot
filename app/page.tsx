@@ -3,9 +3,12 @@
 import { useState, useRef, useEffect } from "react";
 import { MessageBubble } from "@/components/chat/MessageBubble";
 import { UserContextModal } from "@/components/bonfire/UserContextModal";
-import { Send, Flame, Info, Eye, EyeOff } from "lucide-react"; //  Added Eye icons
+import LoginButton from "@/components/bonfire/LoginButton";
+
+import { Send, Flame, Info, Eye, EyeOff, LogOut } from "lucide-react"; //  Added Eye icons
 import { cn } from "@/lib/utils";
 import { UserContext } from "@/lib/types";
+import { createBrowClient } from "@/lib/supabase/client";
 
 type Message = {
   text: string;
@@ -14,6 +17,11 @@ type Message = {
 };
 
 export default function Home() {
+  // --- AUTH STATE ---
+  const [user, setUser] = useState<any>(null);
+  const [authLoading, setAuthLoading] = useState(true);
+
+  // --- CHAT STATE ---
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [privacyMode, setPrivacyMode] = useState(false); //  The Toggle State
@@ -24,10 +32,59 @@ export default function Home() {
     { text: "So, who are we stalking today? 💅", sender: "bonfire" },
   ]);
 
-  // Auto-scroll to bottom
+  useEffect(() => {
+    const supabase = createBrowClient();
+
+    const checkUser = async () => {
+      // Check Auth
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      setUser(user);
+
+      if (user) {
+        // Check if Profile exists in DB
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("*")
+          .eq("id", user.id)
+          .single();
+
+        // If we found a profile, load it into state (Hides the modal)
+        if (profile) {
+          setUserContext({
+            name: profile.name,
+            vibe: profile.vibe,
+            insecurity: profile.insecurity,
+          });
+        }
+      }
+
+      setAuthLoading(false);
+    };
+
+    checkUser();
+
+    // Listen for auth changes (Login/Logout)
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+      if (!session) setUserContext(null); // Reset context on logout
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  // Auto-scroll
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+
+  const handleLogout = async () => {
+    const supabase = createBrowClient();
+    await supabase.auth.signOut();
+  };
 
   const sendMessage = async () => {
     if (!input.trim()) return;
@@ -36,7 +93,7 @@ export default function Home() {
     const newMsg: Message = {
       text: input,
       sender: "user",
-      isIncognito: privacyMode, //  Tag it!
+      isIncognito: privacyMode,
     };
 
     // Update UI immediately
@@ -74,6 +131,47 @@ export default function Home() {
     }
   };
 
+  // While checking authenticaion
+  if (authLoading) {
+    return (
+      <div className="h-screen bg-[#0E1621] flex items-center justify-center">
+        <div className="w-8 h-8 bg-orange-500 rounded-full animate-ping" />
+      </div>
+    );
+  }
+
+  // Render auth page
+  if (!user) {
+    return (
+      <div className="flex flex-col h-screen bg-[#0E1621] text-white items-center justify-center p-6 relative overflow-hidden">
+        {/* Background Glows */}
+        <div className="absolute top-0 left-0 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2 pointer-events-none" />
+        <div className="absolute bottom-0 right-0 w-96 h-96 bg-orange-500/10 rounded-full blur-3xl translate-x-1/2 translate-y-1/2 pointer-events-none" />
+
+        <div className="z-10 text-center space-y-8 max-w-md">
+          <div className="w-24 h-24 bg-linear-to-br from-orange-500 to-red-600 rounded-3xl mx-auto flex items-center justify-center shadow-2xl rotate-3">
+            <Flame size={48} fill="currentColor" className="text-white" />
+          </div>
+
+          <div className="space-y-2">
+            <h1 className="text-4xl font-bold tracking-tight">Bonfire</h1>
+            <p className="text-blue-200/60 text-lg">
+              The group chat that roasts you back.
+            </p>
+          </div>
+
+          <div className="pt-4 flex justify-center">
+            <LoginButton />
+          </div>
+
+          <p className="text-xs text-gray-500 pt-8">
+            By entering, you agree to be judged. 💀
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col h-screen bg-[#0E1621] text-white mx-auto shadow-2xl overflow-hidden font-sans">
       {!userContext && (
@@ -100,6 +198,15 @@ export default function Home() {
           size={20}
           className="text-gray-400 opacity-50 hover:opacity-100 cursor-pointer"
         />
+
+        {/* Logout Button */}
+        <button
+          onClick={handleLogout}
+          className="p-2 text-gray-400 hover:text-red-400 transition-colors cursor-pointer"
+          title="Sign Out"
+        >
+          <LogOut size={20} />
+        </button>
       </div>
 
       {/* Chat Area */}
@@ -138,7 +245,7 @@ export default function Home() {
           <button
             onClick={() => setPrivacyMode(!privacyMode)}
             className={cn(
-              "p-3 rounded-full transition-all active:scale-95 border",
+              "p-3 rounded-full transition-all active:scale-95 border cursor-pointer",
               privacyMode
                 ? "bg-green-900/30 text-green-400 border-green-500/50" // ON Style
                 : "bg-[#2b3947] text-gray-400 border-transparent hover:text-white" // OFF Style
@@ -170,13 +277,13 @@ export default function Home() {
             onClick={sendMessage}
             disabled={loading}
             className={cn(
-              "p-3 rounded-full transition-all shadow-lg active:scale-95 text-white",
+              " p-3 rounded-full transition-all shadow-lg active:scale-95 text-white cursor-pointer",
               privacyMode
                 ? "bg-green-600 hover:bg-green-500"
-                : "bg-[#2AABEE] hover:bg-[#229ED9]"
+                : "bg-linear-to-br from-orange-400 to-red-500 hover:bg-[#229ED9]"
             )}
           >
-            <Send size={22} className="ml-0.5 mt-0.5" />
+            <Send fill="white" size={22} className=" mt-0.5 mr-0.5" />
           </button>
         </div>
       </div>

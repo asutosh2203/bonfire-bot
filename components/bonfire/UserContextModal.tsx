@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { Flame, ArrowRight } from "lucide-react";
-import { UserContext } from "@/lib/types";
+import { Flame, ArrowRight, Loader2 } from "lucide-react"; // Added Loader2
+import { UserContext } from "@/lib/types"; // Make sure this type is defined shared!
+import { saveUserProfile } from "@/app/actions"; // 👈 IMPORT THE SERVER ACTION
 
 type Props = {
   onSubmit: (context: UserContext) => void;
@@ -14,10 +15,26 @@ export const UserContextModal = ({ onSubmit }: Props) => {
     vibe: "",
     insecurity: "",
   });
+  const [isSaving, setIsSaving] = useState(false); // 👈 New Loading State
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
+    // 1. Validation
     if (!formData.name || !formData.vibe || !formData.insecurity) return;
-    onSubmit(formData);
+
+    setIsSaving(true);
+
+    try {
+      // 2. Call Server Action (Saves to Supabase)
+      await saveUserProfile(formData);
+
+      // 3. Update Local State (Closes modal immediately)
+      onSubmit(formData);
+    } catch (error) {
+      console.error("Failed to save profile:", error);
+      alert("Bonfire choked. Try again.");
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -46,7 +63,8 @@ export const UserContextModal = ({ onSubmit }: Props) => {
               </label>
               <input
                 autoFocus
-                className="w-full bg-[#0E1621] text-white rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-orange-500/50 transition-all border border-transparent focus:border-orange-500/30 placeholder:text-gray-700"
+                disabled={isSaving}
+                className="w-full bg-[#0E1621] text-white rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-orange-500/50 transition-all border border-transparent focus:border-orange-500/30 placeholder:text-gray-700 disabled:opacity-50"
                 placeholder="e.g. Asutosh"
                 value={formData.name}
                 onChange={(e) =>
@@ -61,7 +79,8 @@ export const UserContextModal = ({ onSubmit }: Props) => {
                 Vibe / Role
               </label>
               <input
-                className="w-full bg-[#0E1621] text-white rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-orange-500/50 transition-all border border-transparent focus:border-orange-500/30 placeholder:text-gray-700"
+                disabled={isSaving}
+                className="w-full bg-[#0E1621] text-white rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-orange-500/50 transition-all border border-transparent focus:border-orange-500/30 placeholder:text-gray-700 disabled:opacity-50"
                 placeholder="e.g. The Over-Engineer, The Gym Bro"
                 value={formData.vibe}
                 onChange={(e) =>
@@ -76,7 +95,8 @@ export const UserContextModal = ({ onSubmit }: Props) => {
                 Biggest Insecurity
               </label>
               <input
-                className="w-full bg-[#0E1621] text-white rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-orange-500/50 transition-all border border-transparent focus:border-orange-500/30 placeholder:text-gray-700"
+                disabled={isSaving}
+                className="w-full bg-[#0E1621] text-white rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-orange-500/50 transition-all border border-transparent focus:border-orange-500/30 placeholder:text-gray-700 disabled:opacity-50"
                 placeholder="e.g. I never finish side projects"
                 value={formData.insecurity}
                 onChange={(e) =>
@@ -89,14 +109,28 @@ export const UserContextModal = ({ onSubmit }: Props) => {
 
           <button
             onClick={handleSubmit}
-            disabled={!formData.name || !formData.vibe || !formData.insecurity}
+            disabled={
+              !formData.name ||
+              !formData.vibe ||
+              !formData.insecurity ||
+              isSaving
+            }
             className="w-full bg-white text-black font-bold py-4 rounded-xl hover:bg-gray-200 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 group"
           >
-            <span>Enter the Pit</span>
-            <ArrowRight
-              size={18}
-              className="group-hover:translate-x-1 transition-transform"
-            />
+            {isSaving ? (
+              <>
+                <Loader2 size={18} className="animate-spin" />
+                <span>Saving...</span>
+              </>
+            ) : (
+              <>
+                <span>Enter the Pit</span>
+                <ArrowRight
+                  size={18}
+                  className="group-hover:translate-x-1 transition-transform"
+                />
+              </>
+            )}
           </button>
         </div>
       </div>

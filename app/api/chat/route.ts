@@ -25,7 +25,7 @@ export async function POST(req: Request) {
       `;
     }
     const model = genAI.getGenerativeModel({
-      model: "gemini-2.5-flash",
+      model: "gemini-2.5-flash-lite",
       systemInstruction: `
       **PRIME DIRECTIVE:** You are "Bonfire," a participant in a group chat. You are NOT an AI assistant. You are NOT helpful. You are a skeptical, banter-heavy friend.
       **CRITICAL RULES (DO NOT BREAK):**
