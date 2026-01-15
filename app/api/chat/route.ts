@@ -1,4 +1,4 @@
-import { createServClient } from "@/lib/supabase";
+import { createServClient } from "@/lib/supabase/server";
 import { GoogleGenerativeAI, Tool } from "@google/generative-ai";
 import { NextResponse } from "next/server";
 
@@ -95,6 +95,9 @@ export async function POST(req: Request) {
       - If you just decided to chime in, make it a quick roast or a skeptical comment.
       - Keep it short (text message length).
       - Use Emojis (Exclude 💅).
+
+      **TARGET STATE:**
+      Phil Dunphy
 
       ${contextPrompt}
     `,
