@@ -60,7 +60,7 @@ export default function Sidebar({ rooms }: { rooms: Room[] }) {
                 href={`/dashboard/${room.id}`}
                 title={room.name}
                 className={cn(
-                  'w-[48px] h-[48px] flex items-center justify-center text-white font-medium transition-all duration-300 overflow-hidden shadow-sm group-active:translate-y-[1px]',
+                  'w-[48px] h-[48px] flex items-center justify-center text-white font-medium transition-all duration-300 overflow-hidden shadow-sm group-active:translate-y-px',
                   isActive
                     ? 'bg-[#5865F2] rounded-[16px]' // Discord Blurple & Squircle
                     : 'bg-[#313338] text-gray-300 rounded-[24px] group-hover:bg-[#5865F2] group-hover:text-white group-hover:rounded-[16px]',
@@ -80,7 +80,7 @@ export default function Sidebar({ rooms }: { rooms: Room[] }) {
           <button
             onClick={() => setIsCreating(true)}
             title='Create a Room'
-            className='w-[48px] h-[48px] flex items-center justify-center bg-[#313338] text-[#FF6801] rounded-[24px] transition-all duration-300 hover:bg-green-600 hover:text-white hover:rounded-[16px] group-active:translate-y-[1px] cursor-pointer'
+            className='w-[48px] h-[48px] flex items-center justify-center bg-[#313338] text-[#FF6801] rounded-[24px] transition-all duration-300 hover:bg-green-600 hover:text-white hover:rounded-[16px] group-active:translate-y-px cursor-pointer'
           >
             <Plus size={24} />
           </button>
