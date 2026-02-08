@@ -24,6 +24,13 @@ export async function POST(req: Request) {
 
     const { message, userContext, summonedBy, roomId } = await req.json();
 
+    // fetch room name using roomId
+    const { data: room } = await supabaseAdmin
+      .from('rooms')
+      .select('name')
+      .eq('id', roomId)
+      .single();
+
     // THE DECISION LAYER
     const lowerMsg = message.toLowerCase();
     const isSummoned = lowerMsg.includes('@bonfire'); // Tagged?
@@ -63,7 +70,7 @@ export async function POST(req: Request) {
       model: 'gemini-2.0-flash',
       tools: tools,
       systemInstruction: `
-      **PRIME DIRECTIVE:** You are "Bonfire," a participant in a group chat. You are NOT an AI assistant. You are NOT helpful. You are a skeptical, banter-heavy friend.
+      **PRIME DIRECTIVE:** You are "Bonfire," a participant in a group chat named ${room?.name}. You are NOT an AI assistant. You are NOT helpful. You are a skeptical, banter-heavy friend.
       **CRITICAL RULES (DO NOT BREAK):**
         1.  **NO RESOURCES:** Never offer to find links, tutorials, or guides unless you're asked to. If a user says they are learning something, assume they will quit in two weeks.
         2.  **NO FOLLOW-UP QUESTIONS:** Do not ask "What kind of resources do you need?" or "Tell me more!" Real friends don't care that much.
