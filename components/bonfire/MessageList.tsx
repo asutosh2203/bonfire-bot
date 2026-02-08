@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { createBrowClient } from '@/lib/supabase/client';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
-import { User } from 'lucide-react';
+import { ExternalLink, Globe, User } from 'lucide-react';
 import { RealtimeChannel } from '@supabase/supabase-js';
 
 type Message = {
@@ -15,6 +15,10 @@ type Message = {
   is_ai: boolean;
   profiles: {
     name: string;
+  };
+  metadata: {
+    sources: { title: string; url: string }[];
+    searchQuery: string;
   };
 };
 
@@ -41,7 +45,7 @@ export default function MessageList({
     const fetchMessages = async () => {
       const { data, error } = await supabase
         .from('messages')
-        .select(`*, profiles ( name )`) // Updated to use 'name' based on your schema
+        .select(`*, profiles ( name )`)
         .eq('room_id', roomId)
         .order('created_at', { ascending: true });
 
@@ -158,16 +162,49 @@ export default function MessageList({
       .toUpperCase();
   };
 
+  // 5. Helper for highlighting mentions
+  function highlightMentions(text: string) {
+    // Match @username but avoid emails/URLs
+    const regex = /(^|\s)(@\w+)/g;
+
+    const parts = [];
+    let lastIndex = 0;
+    let match;
+
+    while ((match = regex.exec(text)) !== null) {
+      const [fullMatch, prefix, mention] = match;
+      const start = match.index + prefix.length;
+
+      // push text before mention
+      parts.push(text.slice(lastIndex, start));
+
+      // push styled mention
+      parts.push(
+        <span key={start} className='font-bold italic'>
+          {mention}
+        </span>,
+      );
+
+      lastIndex = start + mention.length;
+    }
+
+    parts.push(text.slice(lastIndex));
+    return parts;
+  }
+
   return (
     <div className='flex-1 overflow-y-auto p-4 space-y-1 bg-[#313338] scrollbar-thin scrollbar-thumb-black/20'>
       {messages.map((msg, index) => {
         const prevMsg = messages[index - 1];
         const compact = isCompact(msg, prevMsg);
 
+        const { metadata } = msg;
+        const sources = metadata?.sources || [];
+
         return (
           <div
             key={msg.id}
-            className={`flex gap-4 group pr-4 ${compact ? 'mt-0.5 py-0.5 hover:bg-black/5' : 'mt-4 hover:bg-black/5'}`}
+            className={`flex gap-4 group pr-4 rounded-md ${compact ? 'mt-0.5 py-0.5 hover:bg-black/5' : 'mt-4 p-4 hover:bg-black/5'}`}
           >
             {/* Avatar Column */}
             <div className='w-10 flex flex-col items-center'>
@@ -189,7 +226,7 @@ export default function MessageList({
               {!compact && (
                 <div className='flex items-center gap-2'>
                   <span
-                    className={`font-medium cursor-pointer hover:underline ${msg.is_ai ? 'text-orange-500' : 'text-white'}`}
+                    className={`cursor-pointer hover:underline font-bold ${msg.is_ai ? 'text-orange-500' : 'text-white'}`}
                   >
                     {msg.is_ai ? 'Bonfire AI' : msg.profiles?.name || 'Unknown'}
                   </span>
@@ -203,12 +240,30 @@ export default function MessageList({
                   </span>
                 </div>
               )}
-
               <p
                 className={`text-gray-100 whitespace-pre-wrap leading-relaxed ${compact ? '' : 'mt-1'}`}
               >
-                {msg.content}
+                {highlightMentions(msg.content)}
               </p>
+              {sources.length > 0 && (
+                <div className='mt-3 flex flex-wrap gap-2 pt-3 border-t border-white/10'>
+                  {sources.map((source: any, index: number) => (
+                    <a
+                      key={index}
+                      href={source.url}
+                      target='_blank'
+                      rel='noopener noreferrer'
+                      className='flex items-center gap-1.5 bg-black/20 hover:bg-black/40 text-xs text-blue-300 px-3 py-1.5 rounded-full transition border border-white/5'
+                    >
+                      <Globe size={12} />
+                      <span className='truncate max-w-[150px]'>
+                        {source.title}
+                      </span>
+                      <ExternalLink size={10} className='opacity-50' />
+                    </a>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         );

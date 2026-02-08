@@ -157,7 +157,27 @@ export async function POST(req: Request) {
     const chat = model.startChat({ history: formattedHistory });
 
     const result = await chat.sendMessage(message);
-    const response = result.response.text();
+    const response = result.response.text(); // response text
+
+    // Extract search metadata from Bonfire response
+    const candidates = result.response.candidates || [];
+    const groundingMetadata = candidates[0]?.groundingMetadata;
+
+    let sources: ({ title: string; url: string } | null)[] = [];
+
+    if (groundingMetadata?.groundingChunks) {
+      sources = groundingMetadata.groundingChunks
+        .map((chunk: any) => {
+          const web = chunk.web;
+          if (!web) return null;
+
+          return {
+            title: (web.title as string) || 'Source',
+            url: (web.uri as string) || (web.url as string),
+          };
+        })
+        .filter((item: any) => item !== null); // Remove empty entries
+    }
 
     await supabaseAdmin.from('messages').insert({
       content: response,
@@ -165,6 +185,10 @@ export async function POST(req: Request) {
       user_id: BONFIRE_ID,
       is_ai: true,
       summoned_by: summonedBy,
+      metadata: {
+        sources: sources,
+        searchQuery: groundingMetadata?.webSearchQueries?.[0], // Store what she searched for
+      },
     });
 
     return NextResponse.json({ text: response });
