@@ -1,8 +1,8 @@
-"use server"; // 👈 This magic string makes it a Server Action
+'use server'; // 👈 This magic string makes it a Server Action
 
-import { createServClient } from "@/lib/supabase/server";
-import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
+import { createServClient } from '@/lib/supabase/server';
+import { revalidatePath } from 'next/cache';
+import { redirect } from 'next/navigation';
 
 type UserContext = {
   name: string;
@@ -17,10 +17,10 @@ export async function saveUserProfile(formData: UserContext) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) throw new Error("Not authenticated");
+  if (!user) throw new Error('Not authenticated');
 
   // 2. Upsert (Insert or Update) into 'profiles' table
-  const { error } = await supabase.from("profiles").upsert({
+  const { error } = await supabase.from('profiles').upsert({
     id: user.id, // Matches Auth ID
     email: user.email,
     name: formData.name,
@@ -29,12 +29,12 @@ export async function saveUserProfile(formData: UserContext) {
   });
 
   if (error) {
-    console.error("Supabase Error:", error);
-    throw new Error("Failed to save profile");
+    console.error('Supabase Error:', error);
+    throw new Error('Failed to save profile');
   }
 
   // 3. Purge the cache so the UI updates immediately
-  revalidatePath("/");
+  revalidatePath('/');
 
   return { success: true };
 }
@@ -49,10 +49,10 @@ export async function getChatHistory() {
   if (!user) return [];
 
   const { data } = await supabase
-    .from("messages")
-    .select("*")
-    .eq("user_id", user.id) // Only get MY chat with the bot
-    .order("created_at", { ascending: true });
+    .from('messages')
+    .select('*')
+    .eq('user_id', user.id) // Only get MY chat with the bot
+    .order('created_at', { ascending: true });
 
   return data || [];
 }
@@ -60,8 +60,8 @@ export async function getChatHistory() {
 // SAVE MESSAGE (User or AI)
 export async function saveMessage(
   content: string,
-  role: "user" | "bonfire",
-  isIncognito: boolean = false
+  role: 'user' | 'bonfire',
+  isIncognito: boolean = false,
 ) {
   const supabase = await createServClient();
   const {
@@ -72,14 +72,14 @@ export async function saveMessage(
 
   // AI messages are also stored under the USER'S ID so we know whose chat it belongs to.
   // We distinguish them using the 'is_ai' flag.
-  const { error } = await supabase.from("messages").insert({
+  const { error } = await supabase.from('messages').insert({
     content,
     user_id: user.id,
-    is_ai: role === "bonfire",
+    is_ai: role === 'bonfire',
     is_incognito: isIncognito,
   });
 
-  if (error) console.error("Error saving message:", error);
+  if (error) console.error('Error saving message:', error);
 }
 
 // --- 1. FETCHING ROOMS ---
@@ -93,7 +93,7 @@ export async function getMyRooms() {
 
   // Fetch rooms where the user is a participant
   const { data, error } = await supabase
-    .from("room_participants")
+    .from('room_participants')
     .select(
       `
       room_id,
@@ -103,12 +103,12 @@ export async function getMyRooms() {
         created_by,
         invite_code
       )
-    `
+    `,
     )
-    .eq("user_id", user.id);
+    .eq('user_id', user.id);
 
   if (error) {
-    console.error("Error fetching rooms:", error);
+    console.error('Error fetching rooms:', error);
     return [];
   }
 
@@ -121,9 +121,9 @@ export async function getRoomByInviteCode(code: string) {
   const supabase = await createServClient();
   // No auth check needed here (public preview)
   const { data: room, error } = await supabase
-    .from("rooms")
-    .select("id, name, created_by")
-    .eq("invite_code", code)
+    .from('rooms')
+    .select('id, name, created_by')
+    .eq('invite_code', code)
     .single();
 
   if (error || !room) return null;
@@ -137,14 +137,14 @@ export async function createRoom(roomName: string, enableBonfire: boolean) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) throw new Error("Not authenticated");
+  if (!user) throw new Error('Not authenticated');
 
   // Generate a random 6-char code (e.g., "X9B22A")
   const inviteCode = Math.random().toString(36).substring(2, 8).toUpperCase();
 
   // 1. Create the Room
   const { data: room, error } = await supabase
-    .from("rooms")
+    .from('rooms')
     .insert({
       name: roomName,
       created_by: user.id,
@@ -157,12 +157,12 @@ export async function createRoom(roomName: string, enableBonfire: boolean) {
   if (error) throw new Error(error.message);
 
   // 2. Auto-join the creator
-  await supabase.from("room_participants").insert({
+  await supabase.from('room_participants').insert({
     room_id: room.id,
     user_id: user.id,
   });
 
-  revalidatePath("/dashboard");
+  revalidatePath('/dashboard');
   return { success: true, roomId: room.id };
 }
 
@@ -171,29 +171,29 @@ export async function joinRoom(inviteCode: string) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) throw new Error("Not authenticated");
+  if (!user) throw new Error('Not authenticated');
 
   // 1. Find the room
   const { data: room } = await supabase
-    .from("rooms")
-    .select("id")
-    .eq("invite_code", inviteCode)
+    .from('rooms')
+    .select('id')
+    .eq('invite_code', inviteCode)
     .single();
 
-  if (!room) return { error: "Room not found or link expired." };
+  if (!room) return { error: 'Room not found or link expired.' };
 
   // 2. Add User as Participant
-  const { error } = await supabase.from("room_participants").insert({
+  const { error } = await supabase.from('room_participants').insert({
     room_id: room.id,
     user_id: user.id,
   });
 
   if (error) {
     // Code 23505 = Unique Violation (Already joined)
-    if (error.code !== "23505") return { error: error.message };
+    if (error.code !== '23505') return { error: error.message };
   }
 
-  revalidatePath("/dashboard");
+  revalidatePath('/dashboard');
   return { success: true, roomId: room.id };
 }
 
@@ -205,29 +205,41 @@ export async function regenerateInviteCode(roomId: string) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (!user) throw new Error("Not authenticated");
+  if (!user) throw new Error('Not authenticated');
 
   // 1. Verify Ownership (Only the creator can change the lock)
   const { data: room } = await supabase
-    .from("rooms")
-    .select("created_by")
-    .eq("id", roomId)
+    .from('rooms')
+    .select('created_by, name')
+    .eq('id', roomId)
     .single();
 
   if (!room || room.created_by !== user.id) {
-    throw new Error("Only the owner can reset the invite.");
+    throw new Error('Only the owner can reset the invite.');
   }
 
+  console.log('Rotatting Invite code for:', room.name);
   // 2. Generate New Code
   const newCode = Math.random().toString(36).substring(2, 8).toUpperCase();
 
   // 3. Update DB
-  const { error } = await supabase
-    .from("rooms")
+  const { data, error } = await supabase
+    .from('rooms')
     .update({ invite_code: newCode })
-    .eq("id", roomId);
+    .eq('id', roomId)
+    .select();
 
-  if (error) throw new Error("Failed to regenerate code");
+  if (!data || data.length === 0) {
+    console.error(
+      'Update failed: RLS policy blocked the update or Room ID invalid.',
+    );
+    throw new Error('You do not have permission to update this room.');
+  }
+
+  if (error) {
+    console.error('Error regenerating invite code:', error);
+    throw new Error('Failed to regenerate code');
+  }
 
   revalidatePath(`/dashboard/${roomId}`);
   return { success: true, newCode };
