@@ -5,6 +5,7 @@ import { createBrowClient } from '@/lib/supabase/client';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 import { User } from 'lucide-react';
+import { RealtimeChannel } from '@supabase/supabase-js';
 
 type Message = {
   id: number;
@@ -50,52 +51,68 @@ export default function MessageList({
 
     fetchMessages();
 
-    // 2. Real-time Subscription (DEBUG MODE)
-    console.log('🔌 Attempting to subscribe to room:', roomId);
-    const channelId = `room:${roomId}:${Date.now()}`;
+    let channel: RealtimeChannel;
+    const setupRealtime = async () => {
+      // 1. CHECK AUTH STATE FIRST
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
 
-    const channel = supabase
-      .channel(channelId) // Channel name
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'messages',
-          // ⚠️ Temporarily REMOVING the filter to see if that's the blocker
-          // filter: `room_id=eq.${roomId}`
-        },
-        async (payload: any) => {
-          // Manual Filter (since we removed the server-side one)
-          if (payload.new.room_id !== roomId) return;
+      if (!session) {
+        console.warn('⚠️ No session found. Realtime disabled for security.');
+        return;
+      }
 
-          // Fetch the profile for the sender
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('name') // Updated schema
-            .eq('id', payload.new.user_id)
-            .single();
+      console.log(`🔌 Subscribing as user: ${session.user.id}`);
 
-          const newMessage = { ...payload.new, profiles: profile } as Message;
-          setMessages((prev) => {
-            // Deduping: Make sure we don't add the same message twice
-            if (prev.some((m) => m.id === newMessage.id)) return prev;
-            return [...prev, newMessage];
-          });
-        },
-      )
-      .subscribe((status: any) => {
-        if (status === 'SUBSCRIBED') {
-          console.log('✅ LIVE: Connected to room');
-        } else if (status === 'CLOSED') {
-          console.log('❌ DISCONNECTED: Channel closed');
-        } else if (status === 'CHANNEL_ERROR') {
-          console.error(
-            '⚠️ ERROR: Realtime connection failed. Check network or RLS.',
-          );
-        }
-      });
+      // 2. Real-time Subscription (DEBUG MODE)
+      console.log('🔌 Attempting to subscribe to room:', roomId);
+      const channelId = `room:${roomId}:${Date.now()}`;
 
+      channel = supabase
+        .channel(channelId) // Channel name
+        .on(
+          'postgres_changes',
+          {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'messages',
+            // ⚠️ Temporarily REMOVING the filter to see if that's the blocker
+            // filter: `room_id=eq.${roomId}`
+          },
+          async (payload: any) => {
+            // Manual Filter (since we removed the server-side one)
+            if (payload.new.room_id !== roomId) return;
+
+            // Fetch the profile for the sender
+            const { data: profile } = await supabase
+              .from('profiles')
+              .select('name') // Updated schema
+              .eq('id', payload.new.user_id)
+              .single();
+
+            const newMessage = { ...payload.new, profiles: profile } as Message;
+            setMessages((prev) => {
+              // Deduping: Make sure we don't add the same message twice
+              if (prev.some((m) => m.id === newMessage.id)) return prev;
+              return [...prev, newMessage];
+            });
+          },
+        )
+        .subscribe((status: any) => {
+          if (status === 'SUBSCRIBED') {
+            console.log('✅ LIVE: Connected to room');
+          } else if (status === 'CLOSED') {
+            console.log('❌ DISCONNECTED: Channel closed');
+          } else if (status === 'CHANNEL_ERROR') {
+            console.error(
+              '⚠️ ERROR: Realtime connection failed. Check network or RLS.',
+            );
+          }
+        });
+    };
+
+    setupRealtime();
     return () => {
       console.log('🔌 Disconnecting...');
       supabase.removeChannel(channel);
