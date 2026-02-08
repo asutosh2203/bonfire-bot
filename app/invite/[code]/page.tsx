@@ -49,22 +49,22 @@ export default async function InvitePage({
     }
   }
 
-  console.log(room.room_participants);
-  console.log(user);
   // 5. The "Happy Path" UI (Preview Card)
   // (We use a safe check for count just in case)
   const memberCount = room.room_participants?.[0]?.count || 0;
 
   return (
     <div className='min-h-screen relative flex items-center justify-center p-4 overflow-hidden'>
-      {/* Background Image with Blur */}
-      <div
-        className='absolute inset-0 z-0 bg-cover bg-center blur-sm scale-110'
-        style={{
-          backgroundImage:
-            "url('https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=2564&auto=format&fit=crop')",
-        }}
-      />
+      {/* Background Image */}
+      {user ? (
+        <div
+          className={`absolute inset-0 z-0 bg-cover bg-center bg-[url('/present.webp')]`}
+        />
+      ) : (
+        <div
+          className={`absolute inset-0 z-0 bg-cover bg-center bg-[url('/invite.webp')]`}
+        />
+      )}
       <div className='absolute inset-0 z-0 bg-black/60' /> {/* Dark Overlay */}
       <div className='relative z-10 bg-[#313338] p-8 rounded-xl shadow-2xl max-w-sm w-full text-center border border-white/10 animate-in zoom-in-95 duration-300'>
         {/* Room Initial Avatar */}
