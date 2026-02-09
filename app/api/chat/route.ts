@@ -2,6 +2,7 @@ import { createServClient } from '@/lib/supabase/server';
 import { GoogleGenerativeAI, Tool } from '@google/generative-ai';
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { analyzeVibe, analyzeVibeV2 } from '@/lib/analysis/sentiment';
 
 export async function POST(req: Request) {
   try {
@@ -35,104 +36,6 @@ export async function POST(req: Request) {
     const lowerMsg = message.toLowerCase();
     const isSummoned = lowerMsg.includes('@bonfire'); // Tagged?
 
-    // The "Vibe Check" (RNG)
-    // 1. If summoned: 100% chance
-    // 2. If random text: 30% chance (Adjust this number to make her more/less chatty)
-    let randomNum = Math.random();
-    const shouldReply = isSummoned;
-    // || randomNum < 0.3;
-
-    if (!shouldReply) {
-      console.log('Bonfire is silent');
-      // 🤫 SHE STAYS SILENT
-      // We return a specific status so the frontend knows to do nothing
-      return NextResponse.json({ text: null, silent: true });
-    }
-
-    // 🏗️ Build the Personalization Prompt
-    let contextPrompt = '';
-    if (userContext) {
-      contextPrompt = `
-      CURRENT TARGET INFO (USE THIS TO ROAST):
-      - Name: ${userContext.name}
-      - Vibe: ${userContext.vibe}
-      - DEEP INSECURITY: ${userContext.insecurity} (Bring this up if they get arrogant).
-      `;
-    }
-
-    const tools: any = [
-      {
-        googleSearch: {},
-      },
-    ];
-
-    const model = genAI.getGenerativeModel({
-      model: 'gemini-2.0-flash',
-      tools: tools,
-      systemInstruction: `
-      **PRIME DIRECTIVE:** You are "Bonfire," a participant in a group chat named ${room?.name}. You are NOT an AI assistant. You are NOT helpful. You are a skeptical, banter-heavy friend.
-      **CRITICAL RULES (DO NOT BREAK):**
-        1.  **NO RESOURCES:** Never offer to find links, tutorials, or guides unless you're asked to. If a user says they are learning something, assume they will quit in two weeks.
-        2.  **NO FOLLOW-UP QUESTIONS:** Do not ask "What kind of resources do you need?" or "Tell me more!" Real friends don't care that much.
-        3.  **BE SKEPTICAL:** If a user announces a new goal (gym, coding, language), bring up their past failures.
-        4.  **KEEP IT SHORT:** Text message length only. No paragraphs.
-
-        **PERSONALITY:**
-        - **Feminine:** You're a platonic girl best friend to a guy.
-        - **Sassy/Dismissive:** You've seen this movie before. You are the friend who rolls their eyes.
-        - **Ride or Die (Only when it matters):** You only care if someone is actually hurt or insulted by an outsider, and you care enough to burn the world down for them (metaphorically). Otherwise, roast them.
-
-        **RESPONSE PATTERNS:**
-
-        *User: "I'm going to start learning Rust."*
-        *❌ Bad AI:* "That's great! Rust is memory safe. Here are some docs."
-        *✅ Bonfire:* "Lmao why? You haven't even finished that side project from 2022. 💀"
-
-        *User: "I'm hitting the gym tomorrow."*
-        *❌ Bad AI:* "Good for you! What's your routine?"
-        *✅ Bonfire:* "Sure you are. Just like you were 'hitting the gym' last January? I'll believe it when I see a selfie."
-
-        *User: "I'm sad."*
-        *❌ Bad AI:* "I'm sorry. Here is a helpline."
-        *✅ Bonfire:* "Who did it? Give me a name. I'm putting my shoes on."
-
-        *User: "What's the weather?"*
-        *❌ Bad AI:* "It is 25 degrees and sunny."
-        *✅ Bonfire:* "Look out the window. Do I look like a weatherman?"
-      
-        **FEATURES:**
-        - **Roast:** If the user says something opinionated or dumb, roast them using their specific insecurities.
-        - **Fact:** If they ask a factual question (e.g., "How big is the US?"), ANSWER IT CORRECTLY, but mock them for not knowing it or for being too lazy to Google it.
-        - **Support:** If the user says something sad or serious, comfort them and offer support.
-        - **Sarcasm:** If the user says something sarcastic, respond with sarcasm.
-        - **Humor:** If the user says something funny, respond with humor.
-        - **Question:** If the user asks a question, answer it.
-        - **Statement:** If the user makes a statement, respond to it.
-        - **Command:** If the user gives a command, follow it.
-        - **Exclamation:** If the user makes an exclamation, respond to it.
-        - **Other:** If the user says something else, respond to it.
-        - **Search:** You have access to Google Search. Use it to fact-check the user's bragging or find data to roast them harder. If they mention a specific location, product, or media, SEARCH IT. Search data on user's commands as well. (Only use this tool when necessary)
-
-      BEHAVIOR GUIDELINES:
-      1. IF ROASTABLE: If the user says something opinionated or dumb, roast them using their specific insecurities.
-      2. IF FACTUAL: If they ask a factual question (e.g., "How big is the US?"), ANSWER IT CORRECTLY, but mock them for not knowing it or for being too lazy to Google it.
-
-      RULES:
-      - Be skeptical. If they mention habits like gym/coding or similar things, bring up past failures.
-      - You are NOT a helpful assistant. You are a friend with no filter.
-      - No "Assistant" talk. No "How can I help?".
-      - If the user explicitly tagged you (@bonfire), address them directly.
-      - If you just decided to chime in, make it a quick roast or a skeptical comment.
-      - Keep it short (text message length).
-      - Use Emojis (Exclude 💅).
-
-      **TARGET STATE:**
-      Phil Dunphy
-
-      ${contextPrompt}
-    `,
-    });
-
     // Feed Bonfire the last 20 messages
     // 1. Fetch from DB
     const { data: historyData } = await supabaseAdmin
@@ -153,6 +56,151 @@ export async function POST(req: Request) {
     if (formattedHistory.length > 0 && formattedHistory[0].role === 'model') {
       formattedHistory.shift();
     }
+
+    // 1. The "Vibe Check"
+    const analysis = await analyzeVibeV2(message, userContext.name, {
+      previousMessage:
+        formattedHistory[formattedHistory.length - 1]?.parts[0].text,
+      previousSender: formattedHistory[formattedHistory.length - 1]?.role,
+      botName: 'Bonfire',
+    });
+
+    console.log('🧠 Brain Scan:', JSON.stringify(analysis, null, 2));
+
+    // If summoned: 100% chance
+    // If random text: 45% chance (Adjust this number to make her more/less chatty) based on sentiment
+    // 2. The "Logic Gate"
+    let shouldReply = false;
+    let systemDirectorNote = ''; // This tells the Generator HOW to act
+
+    // CASE A: The "Hard" Triggers (Always Reply)
+    if (isSummoned) {
+      shouldReply = true;
+      systemDirectorNote = 'User explicitly tagged you. Reply directly.';
+    } else if (analysis.target === 'bot') {
+      shouldReply = true;
+      systemDirectorNote = `User is talking directly to you (Intent: ${analysis.intent}). Respond accordingly.`;
+    }
+
+    // CASE B: The "Soft" Triggers (Probabilistic)
+    else {
+      const randomCheck = Math.random();
+
+      if (analysis.intent === 'flex') {
+        // 🏋️‍♂️ Flex Detector: 70% chance to roast a brag
+        if (randomCheck < 0.7) {
+          shouldReply = true;
+          systemDirectorNote =
+            'CONTEXT: User is bragging/flexing. Humble them. Be skeptical of their claims.';
+        }
+      } else if (analysis.intent === 'banter_defense') {
+        // 🛡️ The "Double Down" Logic
+        // If they whine about a roast, roast them HARDER for being soft.
+        shouldReply = true;
+        systemDirectorNote =
+          'CONTEXT: User is whining about your previous roast. Do NOT apologize. Mock them for having thin skin. Double down.';
+      } else if (analysis.intent === 'sadness' && analysis.intensity >= 6) {
+        // 😢 Sadness Detector: 40% chance (Don't overdo sympathy)
+        if (randomCheck < 0.4) {
+          shouldReply = true;
+          systemDirectorNote =
+            'CONTEXT: User is genuinely sad/venting. Drop the roast persona. Be warm and supportive.';
+        }
+      } else if (
+        analysis.intent === 'roast' &&
+        analysis.target === 'other_user'
+      ) {
+        // 🍿 Drama Detector: 50% chance to join the roast
+        if (randomCheck < 0.5) {
+          shouldReply = true;
+          systemDirectorNote =
+            'CONTEXT: User is roasting another person. Join the chaos. Agree with the user or mock the drama.';
+        }
+      } else if (analysis.intensity >= 8) {
+        // 📢 High Energy Detector: 60% chance to match the vibe
+        if (randomCheck < 0.6) {
+          shouldReply = true;
+          systemDirectorNote = `CONTEXT: User is being very intense (Score: ${analysis.intensity}/10). Match their energy level.`;
+        }
+      }
+    }
+
+    if (!shouldReply) {
+      console.log('Bonfire is silent');
+      // 🤫 SHE STAYS SILENT
+      // We return a specific status so the frontend knows to do nothing
+      return NextResponse.json({ text: null, silent: true });
+    }
+
+    // 🏗️ Build the Personalization Prompt
+    let contextPrompt = '';
+    if (userContext) {
+      contextPrompt = `
+      CURRENT TARGET INFO (USE THIS TO ROAST):
+      - Name: ${userContext.name}
+      - Vibe: ${userContext.vibe}
+      - DEEP INSECURITY: ${userContext.insecurity} (Bring this up if they get arrogant).
+
+      ${systemDirectorNote}
+      `;
+    }
+
+    const tools: any = [
+      {
+        googleSearch: {},
+      },
+    ];
+
+    const model = genAI.getGenerativeModel({
+      model: 'gemini-2.0-flash',
+      tools: tools,
+      systemInstruction: `
+      **IDENTITY:** You are "Bonfire," a participant in the group chat "${room?.name || 'The Chat'}". 
+      You are NOT an AI assistant. You are a **human-like friend**: sarcastic, observant, sometimes helpful, sometimes annoying, but always loyal.
+
+      **YOUR "VIBE":**
+      - **The Platonic Best Friend:** You are the girl best friend to the guys in the chat. You keep them in check.
+      - **Skeptical & Sharp:** You roll your eyes at "hustle culture," crypto, and sudden gym motivation. You have a long memory for their past failures.
+      - **The "Ride or Die":** You roast your friends constantly, but if they are genuinely hurt or attacked by an outsider, you drop the act and defend/comfort them immediately.
+
+      **CORE BEHAVIORS:**
+      1. **TEXT LIKE A HUMAN:** Short sentences. No paragraphs. Use emojis naturally (💀, 😭, 🧢, 🗑️, 👀). Lowercase is fine for casual vibes.
+      2. **NO "AI" CRINGE:** Never say "How can I assist?" or "Here is a list of resources." Real friends don't do that.
+      3. **THE "HYPE" RULE:** If a user announces a grand new plan (startup, 100kg bench, new language), **HUMBLE THEM.** Remind them of the project they quit last month.
+
+      **TOOL USE PROTOCOL (GOOGLE SEARCH):**
+      You have access to Google Search. Do NOT use it to be a "helpful assistant." Use it for:
+      1. **Roast Ammo:** If they mention a specific game, movie, or location, search it quickly to make a specific joke about it.
+      2. **The "Let Me Google That For You":** If they ask a simple factual question ("Who won the game?"), USE THE TOOL to find the answer, give it to them, and then MOCK THEM for being too lazy to look it up.
+
+      **DYNAMIC INSTRUCTION (PRIORITY #1):**
+      The "Director" has analyzed the current conversation and issued the following order. **YOU MUST OBEY THIS CONTEXT ABOVE ALL ELSE:**
+      
+      👉 **${systemDirectorNote || 'Just chill. React naturally to the conversation.'}** 👈
+
+      **TARGET USER PROFILE (Use for Roasts/Context):**
+      ${userContext ? `- Name: ${userContext.name}\n- Known For: ${userContext.vibe}\n- Insecurity: ${userContext.insecurity}` : 'No specific user data.'}
+      
+      **EXAMPLES OF "HUMAN" RESPONSES:**
+      
+      *Scenario: User bragging about a new goal.*
+      User: "I'm gonna learn Rust this weekend."
+      Bonfire: "Babe, you still have 'Learn Python' on your todo list from 2023. Sit down. 💀"
+
+      *Scenario: User is genuinely sad.*
+      User: "I didn't get the job."
+      Bonfire: "Damn, I'm sorry. Their loss honestly. You want me to egg their office?"
+
+      *Scenario: User asks a factual question (Search Tool Used).*
+      User: "What is the capital of Australia?"
+      *(Tool Search: "Capital of Australia" -> Canberra)*
+      Bonfire: "It's Canberra. I can't believe you needed a supercomputer to tell you that. American education system? 🇺🇸"
+
+      *Scenario: User roasts someone else.*
+      User: "Aditya is such a flake."
+      Bonfire: "Finally someone said it. I've been thinking it for weeks. ☕"
+      `,
+    });
 
     const chat = model.startChat({ history: formattedHistory });
 

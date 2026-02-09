@@ -33,7 +33,7 @@ export default function MessageList({
   const bottomRef = useRef<HTMLDivElement>(null);
   /* 
      STABILITY FIX: 
-     We use useMemo to initialize the client once. 
+     createBrowClient returns a singleton instance. 
      This prevents the client from being recreated on every render, 
      which can disconnect the real-time socket. 
   */
@@ -74,7 +74,7 @@ export default function MessageList({
       const channelId = `room:${roomId}:${Date.now()}`;
 
       channel = supabase
-        .channel(channelId) // Channel name
+        ?.channel(channelId) // Channel name
         .on(
           'postgres_changes',
           {
@@ -119,7 +119,7 @@ export default function MessageList({
     setupRealtime();
     return () => {
       console.log('🔌 Disconnecting...');
-      supabase.removeChannel(channel);
+      supabase?.removeChannel(channel);
     };
   }, [roomId, supabase]);
 
@@ -204,10 +204,10 @@ export default function MessageList({
         return (
           <div
             key={msg.id}
-            className={`flex gap-4 group pr-4 rounded-md ${compact ? 'mt-0.5 py-0.5 hover:bg-black/5' : 'mt-4 p-4 hover:bg-black/5'}`}
+            className={`flex gap-4 group px-4 py-2 rounded-md ${compact ? 'mt-0.5 py-0.5 hover:bg-black/5' : 'hover:bg-black/5'}`}
           >
             {/* Avatar Column */}
-            <div className='w-10 flex flex-col items-center'>
+            <div className='w-12 flex flex-col items-center'>
               {!compact && (
                 // TODO: Add avatar image
                 <div className='w-10 h-10 rounded-full bg-gray-600 flex items-center justify-center cursor-pointer hover:opacity-80 transition text-sm font-medium text-white select-none'>
@@ -245,6 +245,7 @@ export default function MessageList({
               >
                 {highlightMentions(msg.content)}
               </p>
+              {/* Citation chips */}
               {sources.length > 0 && (
                 <div className='mt-3 flex flex-wrap gap-2 pt-3 border-t border-white/10'>
                   {sources.map((source: any, index: number) => (

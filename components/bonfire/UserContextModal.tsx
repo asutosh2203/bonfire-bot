@@ -1,23 +1,21 @@
 'use client';
 
 import { useState } from 'react';
-import { Flame, ArrowRight, Loader2 } from 'lucide-react'; // Added Loader2
-import { UserContext } from '@/lib/types'; // Make sure this type is defined shared!
-import { saveUserProfile } from '@/app/actions'; // 👈 IMPORT THE SERVER ACTION
+import { Flame, ArrowRight, Loader2 } from 'lucide-react';
+import { UserContext } from '@/lib/types';
+import { saveUserProfile } from '@/app/actions';
 import { useRouter } from 'next/navigation';
 
-type Props = {
-  onSubmit: (context: UserContext) => void;
-};
-
-export const UserContextModal = ({ onSubmit }: Props) => {
+export const UserContextModal = () => {
   const [formData, setFormData] = useState<UserContext>({
     name: '',
     vibe: '',
     insecurity: '',
   });
   const [isSaving, setIsSaving] = useState(false);
+
   const router = useRouter();
+
   const handleSubmit = async () => {
     // 1. Validation
     if (!formData.name || !formData.vibe || !formData.insecurity) return;
@@ -28,9 +26,7 @@ export const UserContextModal = ({ onSubmit }: Props) => {
       // 2. Call Server Action (Saves to Supabase)
       await saveUserProfile(formData);
 
-      // 3. Update Local State (Closes modal immediately)
-      onSubmit(formData);
-
+      router.refresh(); // Updates the server state
       router.push('/dashboard');
     } catch (error) {
       console.error('Failed to save profile:', error);
