@@ -40,11 +40,17 @@ export async function POST(req: Request) {
     // 1. Fetch from DB
     const { data: historyData } = await supabaseAdmin
       .from('messages')
-      .select(`content, user_id, is_ai`)
+      .select(`content, user_id, is_ai, created_at`)
       .eq('room_id', roomId)
       .eq('is_incognito', false)
       .order('created_at', { ascending: false })
       .limit(20);
+
+    // Check if the chat is dead (no messages in 24h)
+    const isDeadChat =
+      historyData && historyData.length > 1
+        ? checkLastMessageTime(historyData[1].created_at)
+        : false;
 
     // 2. Format for Gemini
     // We need to reverse it so it's chronological (Oldest -> Newest)
@@ -80,6 +86,10 @@ export async function POST(req: Request) {
     } else if (analysis.target === 'bot') {
       shouldReply = true;
       systemDirectorNote = `User is talking directly to you (Intent: ${analysis.intent}). Respond accordingly.`;
+    } else if (isDeadChat) {
+      shouldReply = true;
+      systemDirectorNote =
+        'The chat has been dead for over 24 hours. Revive it with a casual, possibly provocative comment.';
     }
 
     // CASE B: The "Soft" Triggers (Probabilistic)
@@ -244,4 +254,14 @@ export async function POST(req: Request) {
     console.error('💥 CRASH:', error);
     return NextResponse.json({ text: error.message }, { status: 500 });
   }
+}
+
+function checkLastMessageTime(
+  lastMessageDate: string | undefined | null,
+): boolean {
+  if (!lastMessageDate) return false;
+  const lastMsgTime = new Date(lastMessageDate).getTime();
+  const now = new Date().getTime();
+  const diffInHours = (now - lastMsgTime) / (1000 * 60 * 60);
+  return diffInHours > 24;
 }
