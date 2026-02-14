@@ -51,27 +51,20 @@ export async function POST(req: Request) {
         ? checkLastMessageTime(historyData[1].created_at)
         : false;
 
-    // 2. Format for Gemini
-    // We need to reverse it so it's chronological (Oldest -> Newest)
-    let formattedHistory = (historyData || []).reverse().map((msg: any) => ({
-      role: msg.is_ai ? 'model' : 'user', // 'model' = Bot, 'user' = Human
-      parts: [{ text: msg.content }],
-    }));
-
-    if (formattedHistory.length > 0 && formattedHistory[0].role === 'model') {
-      formattedHistory.shift();
-    }
-
     // 1. The "Vibe Check"
+    const lastMessage = historyData?.[1];
+    const lastSender = Array.isArray(lastMessage?.sender)
+      ? lastMessage.sender[0]
+      : lastMessage?.sender;
     const analysis = await analyzeVibeV2(message, userContext.name, {
-      previousMessage: historyData?.[historyData.length - 2].content,
-      previousSender: historyData?.[historyData.length - 2].sender.name,
+      previousMessage: lastMessage?.content,
+      previousSender: lastSender?.name,
       botName: 'Bonfire',
     });
 
     console.log('🧠 Brain scan:', JSON.stringify(analysis, null, 2));
 
-    if (analysis.intensity > 7 || analysis.intent === 'flex') {
+    if (analysis.intensity >= 7 || analysis.intent === 'flex') {
       storeMemory(
         historyData?.[0].user_id,
         userContext.name,
@@ -170,6 +163,17 @@ export async function POST(req: Request) {
         room?.name || 'The Chat',
       ),
     });
+
+    // 2. Format for Gemini
+    // We need to reverse it so it's chronological (Oldest -> Newest)
+    let formattedHistory = (historyData || []).reverse().map((msg: any) => ({
+      role: msg.is_ai ? 'model' : 'user', // 'model' = Bot, 'user' = Human
+      parts: [{ text: msg.content }],
+    }));
+
+    if (formattedHistory.length > 0 && formattedHistory[0].role === 'model') {
+      formattedHistory.shift();
+    }
 
     const chat = model.startChat({ history: formattedHistory });
 

@@ -20,7 +20,7 @@ export type Message = {
     sources: { title: string; url: string }[];
     searchQuery: string;
   };
-  parent_message: Message;
+  parent_message: any;
 };
 
 type Props = {
