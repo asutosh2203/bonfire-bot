@@ -54,7 +54,7 @@ export async function storeMemory(
  */
 export async function recallMemories(
   query: string,
-  threshold = 0.1, // Adjust this: Higher = more strict, Lower = more loose matches
+  threshold = 0.8, // Adjust this: Higher = more strict, Lower = more loose matches
   limit = 3,
 ): Promise<string> {
   try {

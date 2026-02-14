@@ -1,4 +1,4 @@
-import { GoogleGenerativeAI, Tool } from '@google/generative-ai';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 import { NextResponse } from 'next/server';
 import { analyzeVibeV2 } from '@/lib/analysis/sentiment';
 import { supabaseAdmin } from '@/lib/supabase/admin';
@@ -39,7 +39,7 @@ export async function POST(req: Request) {
     // 1. Fetch from DB
     const { data: historyData } = await supabaseAdmin
       .from('messages')
-      .select(`content, user_id, is_ai, created_at`)
+      .select(`content, user_id, is_ai, created_at, sender: user_id(name)`)
       .eq('room_id', roomId)
       .eq('is_incognito', false)
       .order('created_at', { ascending: false })
@@ -64,9 +64,8 @@ export async function POST(req: Request) {
 
     // 1. The "Vibe Check"
     const analysis = await analyzeVibeV2(message, userContext.name, {
-      previousMessage:
-        formattedHistory[formattedHistory.length - 1]?.parts[0].text,
-      previousSender: formattedHistory[formattedHistory.length - 1]?.role,
+      previousMessage: historyData?.[historyData.length - 2].content,
+      previousSender: historyData?.[historyData.length - 2].sender.name,
       botName: 'Bonfire',
     });
 
@@ -164,7 +163,12 @@ export async function POST(req: Request) {
     const model = genAI.getGenerativeModel({
       model: 'gemini-2.5-pro',
       tools: tools,
-      systemInstruction: createPrompt(systemDirectorNote, relevantMemories, userContext, room?.name || 'The Chat'),
+      systemInstruction: createPrompt(
+        systemDirectorNote,
+        relevantMemories,
+        userContext,
+        room?.name || 'The Chat',
+      ),
     });
 
     const chat = model.startChat({ history: formattedHistory });

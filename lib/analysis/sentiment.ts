@@ -58,12 +58,16 @@ export async function analyzeVibeV2(
     generationConfig: { responseMimeType: 'application/json' },
   });
 
-  const prompt = `
-    ROLE: You are the social intelligence engine for a chat bot named "${context.botName || 'Bonfire'}".
-    
-    TASK: Analyze the CURRENT MESSAGE. Determine who the user is talking to and what their intent is.
+  console.log('Text:', text);
+  console.log('User:', userName);
+  console.log('Context:', context);
 
-    --- CONTEXT ---
+  const prompt = `
+    ROLE: You are the social intelligence engine for a chat bot named "${context.botName || 'Bonfire'}" in a group chat.
+    
+    TASK: Analyze the CURRENT MESSAGE sent by "${userName}". Determine who the user is talking to and what their intent is.
+
+    --- PREVIOUS MESSAGE FOR CONTEXT ---
     Last Speaker: "${context.previousSender || 'None'}"
     Last Message: "${context.previousMessage || 'None'}"
     ---------------
@@ -74,7 +78,7 @@ export async function analyzeVibeV2(
 
     GUIDELINES:
     1. TARGET DETECTION ("Who is 'you'?"):
-       - If the text replies to the Last Message, "you" usually refers to "${context.previousSender}".
+       - If the text does not address anyone specifically, it usually refers to "${context.previousSender}".
        - If the text tags @${context.botName}, "you" refers to 'bot'.
        - If the text is a direct reply to the bot's previous roast, "you" refers to 'bot'.
        - If the user says something like "You didn't need to roast me", the Target is 'bot'.
@@ -97,7 +101,7 @@ export async function analyzeVibeV2(
     {
       "intensity": 1 <= number <= 10,
       "sentiment": "positive" | "negative" | "neutral",
-      "intent": "string",
+      "intent": "flex" | "roast" | "sadness" | "banter_defense" | "question" | "joke",
       "target": "self" | "other_user" | "bot" | "general",
       "reasoning": "brief explanation"
     }
