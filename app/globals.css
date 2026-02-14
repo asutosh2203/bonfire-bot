@@ -19,7 +19,11 @@ body {
 }
 
 .markdown-content p {
-  margin-bottom: 0.5rem; /* Space between paragraphs */
+  margin-bottom: 1rem; /* Space between paragraphs */
+}
+
+.markdown-content li {
+  margin-bottom: 0.75rem; /* Space between paragraphs */
 }
 
 .markdown-content p:last-child {
@@ -62,7 +66,7 @@ body {
 }
 
 ::-webkit-scrollbar-track {
-  background: #2B2D31; /* dark slate */
+  background: #1A1A1E; /* dark slate */
 }
 
 ::-webkit-scrollbar-thumb {
@@ -78,5 +82,5 @@ body {
 /* Firefox */
 * {
   scrollbar-width: thin;
-  scrollbar-color: #334155 #2B2D31;
+  scrollbar-color: #334155 #1A1A1E;
 }

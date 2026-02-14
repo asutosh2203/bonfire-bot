@@ -35,7 +35,7 @@ export default function Sidebar({ rooms }: { rooms: Room[] }) {
   return (
     <nav className='h-full shrink-0 z-20'>
       {/* 1. THE RAIL (Icons) */}
-      <div className='w-[72px] h-full bg-[#1E1F22] flex flex-col items-center py-3 gap-2 overflow-y-auto hide-scrollbar select-none'>
+      <div className='w-[72px] h-full bg-[#121214] flex flex-col items-center py-3 gap-2 overflow-y-auto hide-scrollbar select-none'>
         {/* List of Rooms */}
         {rooms.map((room) => {
           const isActive = pathname === `/dashboard/${room.id}`;
@@ -62,8 +62,8 @@ export default function Sidebar({ rooms }: { rooms: Room[] }) {
                 className={cn(
                   'w-[48px] h-[48px] flex items-center justify-center text-white font-medium transition-all duration-300 overflow-hidden shadow-sm group-active:translate-y-px',
                   isActive
-                    ? 'bg-[#5865F2] rounded-[16px]' // Discord Blurple & Squircle
-                    : 'bg-[#313338] text-gray-300 rounded-[24px] group-hover:bg-[#5865F2] group-hover:text-white group-hover:rounded-[16px]',
+                    ? 'border-2 border-[#FF6305] rounded-[16px]' // Discord Blurple & Squircle
+                    : 'bg-[#313338] text-gray-300 rounded-[24px] group-hover:border-2 group-hover:border-[#FF6305] group-hover:text-white group-hover:rounded-[16px]',
                 )}
               >
                 {getInitials(room.name)}
@@ -87,7 +87,7 @@ export default function Sidebar({ rooms }: { rooms: Room[] }) {
         </div>
 
         {/* Logout Button (Bottom) */}
-        <div className='mt-auto mb-2 relative group w-full flex justify-center'>
+        <div className='mt-auto mb-6 relative group w-full flex justify-center'>
           <button
             onClick={handleLogout}
             title='Sign Out'

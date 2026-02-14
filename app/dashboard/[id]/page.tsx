@@ -39,7 +39,7 @@ export default async function RoomPage({
   const participants = members?.map((m: any) => m.profiles) || [];
 
   return (
-    <div className='flex h-full bg-[#313338]'>
+    <div className='flex h-full bg-[#1A1A1E]'>
       {/* CENTER: The Chat */}
       <div className='flex-1 flex flex-col min-w-0 relative'>
         {/* Header */}

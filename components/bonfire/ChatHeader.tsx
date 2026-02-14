@@ -20,7 +20,7 @@ export default function ChatHeader({
   const [showMembers, setShowMembers] = useState(false); // Local state for mobile toggle if needed
 
   return (
-    <div className='h-12 border-b border-white/5 flex items-center justify-between px-4 bg-[#313338] shadow-sm shrink-0'>
+    <div className='h-12 border-b border-white/5 flex items-center justify-between px-4 bg-[#1A1A1E] shadow-sm shrink-0'>
       {/* Left: Room Title */}
       <div className='flex items-center gap-2 text-white'>
         <Hash className='text-gray-400' size={20} />

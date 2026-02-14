@@ -77,8 +77,8 @@ export default function ChatInput({
   };
 
   return (
-    <div className='p-4 bg-[#313338] shrink-0'>
-      <div className='bg-[#383A40] rounded-lg p-2 flex items-center gap-2 shadow-inner'>
+    <div className='p-4 bg-[#1A1A1E] shrink-0'>
+      <div className='bg-[#27272c] rounded-lg p-2 flex items-center gap-2 shadow-inner'>
         <button
           onClick={() => setBonfireEnabled(!bonfireEnabled)}
           disabled={!isRoomAiEnabled}

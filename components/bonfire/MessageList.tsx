@@ -1,11 +1,12 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { createBrowClient } from '@/lib/supabase/client';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 import { ExternalLink, Globe, User } from 'lucide-react';
 import { RealtimeChannel } from '@supabase/supabase-js';
+import ReactMarkdown from 'react-markdown';
 
 type Message = {
   id: number;
@@ -193,7 +194,7 @@ export default function MessageList({
   }
 
   return (
-    <div className='flex-1 overflow-y-auto p-4 space-y-1 bg-[#313338] scrollbar-thin scrollbar-thumb-black/20'>
+    <div className='flex-1 overflow-y-auto p-4 space-y-1 bg-[#1A1A1E] scrollbar-thin scrollbar-thumb-black/20'>
       {messages.map((msg, index) => {
         const prevMsg = messages[index - 1];
         const compact = isCompact(msg, prevMsg);
@@ -204,7 +205,7 @@ export default function MessageList({
         return (
           <div
             key={msg.id}
-            className={`flex gap-4 group px-4 py-2 rounded-md ${compact ? 'mt-0.5 py-0.5 hover:bg-black/5' : 'hover:bg-black/5'}`}
+            className={`flex gap-4 group px-4 py-2 rounded-md ${compact ? 'mt-0.5 py-0.5 hover:bg-[#222227]' : 'hover:bg-[#222227]'}`}
           >
             {/* Avatar Column */}
             <div className='w-12 flex flex-col items-center'>
@@ -240,11 +241,13 @@ export default function MessageList({
                   </span>
                 </div>
               )}
-              <p
+              {/* <p
                 className={`text-gray-100 whitespace-pre-wrap leading-relaxed ${compact ? '' : 'mt-1'}`}
-              >
-                {highlightMentions(msg.content)}
-              </p>
+              > */}
+                <div className={`markdown-content text-gray-100 ${compact ? '' : 'mt-1'}`}>
+                  <ReactMarkdown>{msg.content}</ReactMarkdown>
+                </div>
+              {/* </p> */}
               {/* Citation chips */}
               {sources.length > 0 && (
                 <div className='mt-3 flex flex-wrap gap-2 pt-3 border-t border-white/10'>
