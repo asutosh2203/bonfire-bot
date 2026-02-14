@@ -1,80 +1,151 @@
-import { cn } from "@/lib/utils";
-import { Flame } from "lucide-react";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
+'use client';
 
-type Props = {
-  text: string;
-  sender: "user" | "bonfire";
-  isIncognito?: boolean;
+import { format } from 'date-fns';
+import { Globe, ExternalLink } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
+import ReactionModal from './ReactionModal';
+import { HiOutlineReply } from 'react-icons/hi';
+
+// Define the Message type here to be self-contained or import if you have a shared type
+export type Message = {
+  id: number;
+  content: string;
+  user_id: string;
+  created_at: string;
+  is_ai: boolean;
+  profiles: {
+    name: string;
+  };
+  metadata: {
+    sources: { title: string; url: string }[];
+    searchQuery: string;
+  };
+  parent_message: Message;
 };
 
-export const MessageBubble = ({ text, sender, isIncognito }: Props) => {
-  const isMe = sender === "user";
-  const isBonfire = sender === "bonfire";
+type Props = {
+  message: Message;
+  isCompact: boolean;
+};
+
+export default function MessageBubble({ message, isCompact }: Props) {
+  const { metadata } = message;
+  const sources = metadata?.sources || [];
+
+  const getInitials = (name: string) => {
+    if (!name) return '?';
+    const trimmed = name.trim();
+    const words = trimmed.split(/\s+/);
+
+    if (words.length < 2) {
+      return trimmed.substring(0, 2).toUpperCase();
+    }
+
+    // If more than 3 words, use only first 2 initials
+    if (words.length > 3) {
+      return (words[0][0] + words[1][0]).toUpperCase();
+    }
+
+    // Otherwise (2 or 3 words), use first letter of each
+    return words
+      .map((w) => w[0])
+      .join('')
+      .toUpperCase();
+  };
 
   return (
     <div
-      className={cn(
-        "w-fit max-w-[85%] rounded-2xl px-4 py-2 mb-2 shadow-sm text-[15px] leading-relaxed wrap-break-word",
-
-        // My messages: Telegram Blue
-        isMe &&
-          "bg-linear-to-br from-orange-500 to-red-600 text-white self-end ml-auto rounded-br-md",
-
-        // Bonfire: Dark Slate
-        !isMe && "bg-[#182533] text-white self-start mr-auto rounded-bl-md"
-      )}
+      className={`flex gap-4 group p-2 ${
+        isCompact ? 'mt-0.5 py-0.5 hover:bg-[#222227]' : 'hover:bg-[#222227]'
+      } relative group`}
     >
-      <div className="flex flex-col">
-        {isBonfire && (
-          <span className="text-[11px] font-bold text-orange-400 mb-1 tracking-wide uppercase flex items-center gap-1">
-            <Flame size={10} fill="currentColor" /> Bonfire
+      <ReactionModal
+        message={{
+          id: message.id,
+          content: message.content,
+          name: message.profiles?.name,
+        }}
+      />
+      {/* Avatar Column */}
+      <div className='w-12 flex justify-center'>
+        {!isCompact && (
+          <div className='w-10 h-10 rounded-full bg-gray-600 flex items-center justify-center cursor-pointer hover:opacity-80 transition text-sm font-medium text-white select-none'>
+            {message.is_ai ? 'AI' : getInitials(message.profiles?.name)}
+          </div>
+        )}
+        {isCompact && (
+          <span className='text-[10px] mt-1 text-gray-500 opacity-0 group-hover:opacity-100 select-none'>
+            {format(new Date(message.created_at), 'h:mm a')}
           </span>
         )}
+      </div>
 
-        {/* 👇 MARKDOWN RENDERER */}
+      {/* Content Column */}
+      <div className='flex-1 min-w-0'>
+        {!isCompact && (
+          <div className='flex items-center gap-2 text-sm'>
+            <span
+              className={`cursor-pointer hover:underline font-bold ${
+                message.is_ai ? 'text-orange-500' : 'text-white'
+              }`}
+            >
+              {message.is_ai
+                ? 'Bonfire AI'
+                : message.profiles?.name || 'Unknown'}
+            </span>
+            {message.is_ai && (
+              <span className='bg-[#5865F2] text-white text-[10px] px-1 rounded'>
+                BOT
+              </span>
+            )}
+            <span className='text-xs text-gray-400 ml-1'>
+              {format(new Date(message.created_at), 'MM/dd/yyyy h:mm a')}
+            </span>
+          </div>
+        )}
+
+        {/* Parent Message */}
+        {message.parent_message && (
+          <div className='flex items-center gap-2'>
+            <div className='w-4 rotate-180'>
+              <HiOutlineReply size={16} className='text-gray-400' />
+            </div>
+            <div className='my-2 p-2 bg-white/5 rounded-lg border border-white/10 flex items-center gap-2 flex-none w-[95%]'>
+              <div className='text-xs text-gray-400 shrink-0'>
+                {message.parent_message.sender.name}
+              </div>
+              <div className='text-sm text-gray-200 truncate'>
+                {message.parent_message.content}
+              </div>
+            </div>
+          </div>
+        )}
         <div
-          className={cn(
-            "markdown-content",
-            isMe ? "text-white" : "text-gray-100"
-          )}
+          className={`markdown-content text-gray-100 text-sm ${
+            isCompact ? '' : 'mt-1'
+          }`}
         >
-          <ReactMarkdown
-            remarkPlugins={[remarkGfm]}
-            components={{
-              // Style links to be visible but not break the layout
-              a: ({ node, ...props }) => (
-                <a
-                  {...props}
-                  className="underline text-blue-300 hover:text-blue-200"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                />
-              ),
-              // Style lists so they have padding
-              ul: ({ node, ...props }) => (
-                <ul {...props} className="list-disc ml-4 my-1" />
-              ),
-              ol: ({ node, ...props }) => (
-                <ol {...props} className="list-decimal ml-4 my-1" />
-              ),
-              // Handle bolding
-              strong: ({ node, ...props }) => (
-                <strong {...props} className="font-bold text-orange-200/90" />
-              ),
-            }}
-          >
-            {text}
-          </ReactMarkdown>
+          <ReactMarkdown>{message.content}</ReactMarkdown>
         </div>
-
-        {isIncognito && (
-          <span className="text-[10px] text-white/50 mt-1 flex items-center gap-1 select-none">
-            🙈 Hidden
-          </span>
+        {/* Citation chips */}
+        {sources.length > 0 && (
+          <div className='mt-3 flex flex-wrap gap-2 pt-3 border-t border-white/10'>
+            {sources.map((source: any, index: number) => (
+              <a
+                key={index}
+                href={source.url}
+                target='_blank'
+                rel='noopener noreferrer'
+                className='flex items-center gap-1.5 bg-black/20 hover:bg-black/40 text-xs text-blue-300 px-3 py-1.5 rounded-full transition border border-white/5'
+              >
+                <Globe size={12} />
+                <span className='truncate max-w-[150px]'>{source.title}</span>
+                <ExternalLink size={10} className='opacity-50' />
+              </a>
+            ))}
+          </div>
         )}
       </div>
     </div>
   );
-};
+}

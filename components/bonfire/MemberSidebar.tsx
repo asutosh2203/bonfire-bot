@@ -17,7 +17,7 @@ export default function MemberSidebar({ members }: { members: Profile[] }) {
         {members.map((member) => (
           <div
             key={member.id}
-            className='flex items-center gap-3 p-2 rounded hover:bg-white/5 transition cursor-pointer group opacity-90 hover:opacity-100'
+            className='flex items-center gap-3 p-2 rounded hover:bg-[#222227] transition cursor-pointer group opacity-90 hover:opacity-100'
           >
             {/* Avatar */}
             <div className='w-8 h-8 rounded-full bg-gray-600 flex items-center justify-center overflow-hidden'>
