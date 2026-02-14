@@ -218,7 +218,7 @@ export async function regenerateInviteCode(roomId: string) {
     throw new Error('Only the owner can reset the invite.');
   }
 
-  console.log('Rotatting Invite code for:', room.name);
+  console.log('Rotating Invite code for:', room.name);
   // 2. Generate New Code
   const newCode = Math.random().toString(36).substring(2, 8).toUpperCase();
 

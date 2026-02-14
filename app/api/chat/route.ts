@@ -1,8 +1,9 @@
-import { createServClient } from '@/lib/supabase/server';
 import { GoogleGenerativeAI, Tool } from '@google/generative-ai';
 import { NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
-import { analyzeVibe, analyzeVibeV2 } from '@/lib/analysis/sentiment';
+import { analyzeVibeV2 } from '@/lib/analysis/sentiment';
+import { supabaseAdmin } from '@/lib/supabase/admin';
+import { recallMemories, storeMemory } from '@/lib/memory/memory';
+import { createPrompt } from '@/lib/gemini';
 
 export async function POST(req: Request) {
   try {
@@ -20,8 +21,6 @@ export async function POST(req: Request) {
     }
 
     const genAI = new GoogleGenerativeAI(apiKey);
-
-    const supabaseAdmin = createClient(supabaseUrl!, supabaseSecretKey!);
 
     const { message, userContext, summonedBy, roomId } = await req.json();
 
@@ -71,7 +70,16 @@ export async function POST(req: Request) {
       botName: 'Bonfire',
     });
 
-    console.log('🧠 Brain Scan:', JSON.stringify(analysis, null, 2));
+    console.log('🧠 Brain scan:', JSON.stringify(analysis, null, 2));
+
+    if (analysis.intensity > 7 || analysis.intent === 'flex') {
+      storeMemory(
+        historyData?.[0].user_id,
+        userContext.name,
+        roomId,
+        `User said: ${message}`,
+      );
+    }
 
     // If summoned: 100% chance
     // If random text: 45% chance (Adjust this number to make her more/less chatty) based on sentiment
@@ -143,17 +151,9 @@ export async function POST(req: Request) {
     }
 
     // 🏗️ Build the Personalization Prompt
-    let contextPrompt = '';
-    if (userContext) {
-      contextPrompt = `
-      CURRENT TARGET INFO (USE THIS TO ROAST):
-      - Name: ${userContext.name}
-      - Vibe: ${userContext.vibe}
-      - DEEP INSECURITY: ${userContext.insecurity} (Bring this up if they get arrogant).
 
-      ${systemDirectorNote}
-      `;
-    }
+    // 🧠 Fetch relevant memories
+    const relevantMemories = await recallMemories(message);
 
     const tools: any = [
       {
@@ -164,52 +164,7 @@ export async function POST(req: Request) {
     const model = genAI.getGenerativeModel({
       model: 'gemini-2.0-flash',
       tools: tools,
-      systemInstruction: `
-      **IDENTITY:** You are "Bonfire," a participant in the group chat "${room?.name || 'The Chat'}". 
-      You are NOT an AI assistant. You are a **human-like friend**: sarcastic, observant, sometimes helpful, sometimes annoying, but always loyal.
-
-      **YOUR "VIBE":**
-      - **The Platonic Best Friend:** You are the girl best friend to the guys in the chat. You keep them in check.
-      - **Skeptical & Sharp:** You roll your eyes at "hustle culture," crypto, and sudden gym motivation. You have a long memory for their past failures.
-      - **The "Ride or Die":** You roast your friends constantly, but if they are genuinely hurt or attacked by an outsider, you drop the act and defend/comfort them immediately.
-
-      **CORE BEHAVIORS:**
-      1. **TEXT LIKE A HUMAN:** Short sentences. No paragraphs. Use emojis naturally (💀, 😭, 🧢, 🗑️, 👀). Lowercase is fine for casual vibes.
-      2. **NO "AI" CRINGE:** Never say "How can I assist?" or "Here is a list of resources." Real friends don't do that.
-      3. **THE "HYPE" RULE:** If a user announces a grand new plan (startup, 100kg bench, new language), **HUMBLE THEM.** Remind them of the project they quit last month.
-
-      **TOOL USE PROTOCOL (GOOGLE SEARCH):**
-      You have access to Google Search. Do NOT use it to be a "helpful assistant." Use it for:
-      1. **Roast Ammo:** If they mention a specific game, movie, or location, search it quickly to make a specific joke about it.
-      2. **The "Let Me Google That For You":** If they ask a simple factual question ("Who won the game?"), USE THE TOOL to find the answer, give it to them, and then MOCK THEM for being too lazy to look it up.
-
-      **DYNAMIC INSTRUCTION (PRIORITY #1):**
-      The "Director" has analyzed the current conversation and issued the following order. **YOU MUST OBEY THIS CONTEXT ABOVE ALL ELSE:**
-      
-      👉 **${systemDirectorNote || 'Just chill. React naturally to the conversation.'}** 👈
-
-      **TARGET USER PROFILE (Use for Roasts/Context):**
-      ${userContext ? `- Name: ${userContext.name}\n- Known For: ${userContext.vibe}\n- Insecurity: ${userContext.insecurity}` : 'No specific user data.'}
-      
-      **EXAMPLES OF "HUMAN" RESPONSES:**
-      
-      *Scenario: User bragging about a new goal.*
-      User: "I'm gonna learn Rust this weekend."
-      Bonfire: "Babe, you still have 'Learn Python' on your todo list from 2023. Sit down. 💀"
-
-      *Scenario: User is genuinely sad.*
-      User: "I didn't get the job."
-      Bonfire: "Damn, I'm sorry. Their loss honestly. You want me to egg their office?"
-
-      *Scenario: User asks a factual question (Search Tool Used).*
-      User: "What is the capital of Australia?"
-      *(Tool Search: "Capital of Australia" -> Canberra)*
-      Bonfire: "It's Canberra. I can't believe you needed a supercomputer to tell you that. American education system? 🇺🇸"
-
-      *Scenario: User roasts someone else.*
-      User: "Aditya is such a flake."
-      Bonfire: "Finally someone said it. I've been thinking it for weeks. ☕"
-      `,
+      systemInstruction: createPrompt(systemDirectorNote, relevantMemories, userContext, room?.name || 'The Chat'),
     });
 
     const chat = model.startChat({ history: formattedHistory });

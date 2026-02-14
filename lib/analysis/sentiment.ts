@@ -95,7 +95,7 @@ export async function analyzeVibeV2(
 
     OUTPUT JSON:
     {
-      "intensity": number,
+      "intensity": 1 <= number <= 10,
       "sentiment": "positive" | "negative" | "neutral",
       "intent": "string",
       "target": "self" | "other_user" | "bot" | "general",
