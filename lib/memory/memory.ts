@@ -35,7 +35,7 @@ export async function storeMemory(
     const { error } = await supabaseAdmin.from('memories').insert({
       user_id: userId,
       room_id: roomId,
-      content: content,
+      content: sanitizedContent,
       embedding: vector,
     });
 

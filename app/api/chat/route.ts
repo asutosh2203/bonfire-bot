@@ -64,7 +64,11 @@ export async function POST(req: Request) {
 
     console.log('🧠 Brain scan:', JSON.stringify(analysis, null, 2));
 
-    if (analysis.intensity >= 7 || analysis.intent === 'flex') {
+    if (
+      analysis.intensity > 7 ||
+      analysis.intent === 'flex' ||
+      analysis.intent === 'memorize'
+    ) {
       storeMemory(
         historyData?.[0].user_id,
         userContext.name,
@@ -154,7 +158,7 @@ export async function POST(req: Request) {
     ];
 
     const model = genAI.getGenerativeModel({
-      model: 'gemini-2.5-pro',
+      model: 'gemini-2.5-flash',
       tools: tools,
       systemInstruction: createPrompt(
         systemDirectorNote,

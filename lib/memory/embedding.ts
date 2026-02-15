@@ -32,54 +32,56 @@ export async function sanitizeMemory(
       OUTPUT:
 
       EXAMPLES:
-      INPUT: "lol I forgot my laptop at the cafe again"
-      OUTPUT: "User forgot laptop at a cafe"
+      INPUT: lol I forgot my laptop at the cafe again
+      OUTPUT: User forgot laptop at a cafe
 
-      INPUT: "OMG I just missed my flight by like two minutes"
-      OUTPUT: "User missed the flight"
+      INPUT: OMG I just missed my flight by like two minutes
+      OUTPUT: User missed the flight
 
-      INPUT: "Me and my friend got stuck in traffic for hours"
-      OUTPUT: "User and friend were stuck in traffic for hours"
+      INPUT: Me and my friend got stuck in traffic for hours
+      OUTPUT: User and friend were stuck in traffic for hours
 
-      INPUT: "I accidentally deleted the whole project folder"
-      OUTPUT: "User accidentally deleted the project folder"
+      INPUT: I accidentally deleted the whole project folder
+      OUTPUT: User accidentally deleted the project folder
 
-      INPUT: "Bro I stayed up all night finishing this assignment"
-      OUTPUT: "User stayed awake all night to finish an assignment"
+      INPUT: Bro I stayed up all night finishing this assignment
+      OUTPUT: User stayed awake all night to finish an assignment
 
-      INPUT: "I lost my wallet somewhere downtown today"
-      OUTPUT: "User lost wallet downtown"
+      INPUT: I lost my wallet somewhere downtown today
+      OUTPUT: User lost wallet downtown
 
-      INPUT: "I spilled coffee all over my keyboard this morning"
-      OUTPUT: "User spilled coffee on keyboard"
+      INPUT: I spilled coffee all over my keyboard this morning
+      OUTPUT: User spilled coffee on keyboard
 
-      INPUT: "Me and my team finally shipped the feature today"
-      OUTPUT: "User and team released the feature"
+      INPUT: Me and my team finally shipped the feature today
+      OUTPUT: User and team released the feature
 
-      INPUT: "I quit my job yesterday, couldn’t take it anymore"
-      OUTPUT: "User quit his job"
+      INPUT: I quit my job yesterday, couldn't take it anymore
+      OUTPUT: User quit his job
 
-      INPUT: "I missed the meeting because I overslept"
-      OUTPUT: "User missed meeting due to oversleeping"
+      INPUT: I missed the meeting because I overslept
+      OUTPUT: User missed meeting due to oversleeping
 
-      INPUT: "asdfghjkl lol what even"
-      OUTPUT: "SKIP"
+      INPUT: asdfghjkl lol what even
+      OUTPUT: SKIP
 
-      INPUT: "uhhh yeah whatever blah blah"
-      OUTPUT: "SKIP"
+      INPUT: uhhh yeah whatever blah blah
+      OUTPUT: SKIP
 
-      INPUT: "I dropped my phone and cracked the screen"
-      OUTPUT: "User dropped phone and cracked the screen"
+      INPUT: I dropped my phone and cracked the screen
+      OUTPUT: User dropped phone and cracked the screen
 
-      INPUT: "Me and my brother fixed the bike last night"
-      OUTPUT: "User and brother repaired the bike"
+      INPUT: Me and my brother fixed the bike last night
+      OUTPUT: User and brother repaired the bike
 
-      INPUT: "I sent the email to the wrong client"
-      OUTPUT: "User sent email to the wrong client"
+      INPUT: I sent the email to the wrong client
+      OUTPUT: User sent email to the wrong client
     `;
 
     const result = await sanitizerModel.generateContent(prompt);
     const summary = result.response.text().trim();
+
+    console.log('Sanitizer summary:', summary);
 
     // Safety check: If the AI thinks it's garbage, don't store it.
     if (summary.includes('SKIP')) return '';

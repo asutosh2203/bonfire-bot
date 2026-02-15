@@ -12,6 +12,7 @@ export interface MessageAnalysis {
     | 'question'
     | 'joke'
     | 'noise'
+    | 'memorize'
     | 'banter_defense';
   target: 'self' | 'other_user' | 'bot' | 'general'; // 'bot' means the user is talking TO Bonfire
   reasoning: string;
@@ -95,13 +96,16 @@ export async function analyzeVibeV2(
        - 'banter_defense': User is complaining about being roasted or is playfully offended.
        - 'question': Asking for help.
        - 'joke': Banter.
+       - 'memorize': User wants Bonfire to remember something.
+       - 'noise': User is just spamming or talking nonsense.
        
+    CRUCIAL: FOLLOW OUTPUT JSON FORMAT **VERY STRICTLY**
 
     OUTPUT JSON:
     {
       "intensity": 1 <= number <= 10,
       "sentiment": "positive" | "negative" | "neutral",
-      "intent": "flex" | "roast" | "sadness" | "banter_defense" | "question" | "joke",
+      "intent": "flex" | "roast" | "sadness" | "banter_defense" | "question" | "joke" | "memorize" | "noise",
       "target": "self" | "other_user" | "bot" | "general",
       "reasoning": "brief explanation"
     }
