@@ -8,7 +8,7 @@ type Profile = {
 
 export default function MemberSidebar({ members }: { members: Profile[] }) {
   return (
-    <div className='w-72 bg-[#1A1A1E] flex-col hidden lg:flex border-l border-white/5'>
+    <div className='w-[20rem] bg-[#1A1A1E] flex-col hidden lg:flex border-l border-white/5'>
       <div className='p-4 uppercase text-lg font-bold text-gray-400 tracking-wide'>
         Members — {members.length}
       </div>

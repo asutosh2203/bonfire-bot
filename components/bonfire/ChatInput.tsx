@@ -34,6 +34,7 @@ export default function ChatInput({
     const repliedMessage = replyTarget;
     setContent(''); // Optimistic clear
     clearReplyTarget();
+
     try {
       const {
         data: { user },

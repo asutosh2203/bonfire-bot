@@ -4,6 +4,8 @@ import { useState } from 'react';
 import { SmilePlus } from 'lucide-react';
 import EmojiPicker, { EmojiClickData, Theme } from 'emoji-picker-react';
 import { RiMessage3Fill } from 'react-icons/ri';
+import { MdContentCopy } from 'react-icons/md';
+import { toast } from 'sonner';
 import { useChatStore } from '@/store/useChatStore';
 
 interface Message {
@@ -63,7 +65,18 @@ const ReactionModal = ({ message }: { message: Message }) => {
 
       {/* Reply Button */}
       <button className='hover:bg-white/10 p-1.5 cursor-pointer rounded-full transition-colors text-gray-400 hover:text-white flex items-center justify-center'>
-        <RiMessage3Fill size={18} onClick={() => setReplyTarget(message)}/>
+        <RiMessage3Fill size={18} onClick={() => setReplyTarget(message)} />
+      </button>
+
+      {/* Copy Button */}
+      <button
+        onClick={() => {
+          navigator.clipboard.writeText(message.content);
+          toast.success('Copied to clipboard');
+        }}
+        className='hover:bg-white/10 p-1.5 cursor-pointer rounded-full transition-colors text-gray-400 hover:text-white flex items-center justify-center'
+      >
+        <MdContentCopy size={18} />
       </button>
     </div>
   );
