@@ -22,7 +22,7 @@ export default async function DashboardLayout({
   // 2. Fetch the extra profile data using the secure ID
   const { data } = await supabase
     .from('profiles')
-    .select('name, email')
+    .select('name, email, preferred_status, custom_activity')
     .eq('id', user.id)
     .single();
 

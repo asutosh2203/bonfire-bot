@@ -32,7 +32,7 @@ export default async function RoomPage({
   // 2. Fetch Members (For the Right Sidebar)
   const { data: members } = await supabase
     .from('room_participants')
-    .select('user_id, profiles(id, email, name)')
+    .select('user_id, profiles(id, email, name, preferred_status, custom_activity)')
     .eq('room_id', roomId);
 
   // Flatten members
@@ -58,7 +58,7 @@ export default async function RoomPage({
       </div>
 
       {/* RIGHT: Member Sidebar */}
-      <MemberSidebar members={participants} />
+      <MemberSidebar roomId={room.id} participants={participants} />
     </div>
   );
 }

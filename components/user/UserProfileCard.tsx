@@ -4,9 +4,12 @@ import { type Session, type AuthChangeEvent } from '@supabase/supabase-js';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createBrowClient } from '@/lib/supabase/client'; // Adjust this import to your actual setup
-import { useAuthStore } from '@/store/useAuthStore';
+import { useUserStore } from '@/store/useUserStore';
+import { useProfileStore } from '@/store/useProfileStore';
+
 import { FaGear, FaUser } from 'react-icons/fa6';
 import { RiLogoutCircleRLine } from 'react-icons/ri';
+import UserAvatar from './UserAvatar';
 
 export default function UserProfileCard({
   user,
@@ -17,9 +20,10 @@ export default function UserProfileCard({
 }) {
   const router = useRouter();
 
-  const setCurrentUser = useAuthStore((state) => state.setCurrentUser);
-  const currentUser = useAuthStore((state) => state.currentUser);
-  const setUserProfile = useAuthStore((state) => state.setUserProfile);
+  const setCurrentUser = useUserStore((state) => state.setCurrentUser);
+  const currentUser = useUserStore((state) => state.currentUser);
+  const setUserProfile = useProfileStore((state) => state.setUserProfile);
+  const userProfile = useProfileStore((state) => state.userProfile);
 
   const isLoading = !user || !profile;
 
@@ -28,7 +32,7 @@ export default function UserProfileCard({
   // Set user and profile to global state
   useEffect(() => {
     setCurrentUser(user);
-    setUserProfile(profile);
+    // setUserProfile(profile);
   }, [user, profile]);
 
   // auth subscription
@@ -53,7 +57,7 @@ export default function UserProfileCard({
   // Skeleton loader so the UI doesn't jump around before the user loads
   if (isLoading) {
     return (
-      <div className='flex w-[18rem] h-14 absolute bottom-8 right-4 z-50 rounded-lg bg-[#333338] p-3 shadow-md animate-pulse'></div>
+      <div className='flex w-[18rem] h-14 absolute bottom-8 right-4 z-50 rounded-lg bg-[#202024] p-3 shadow-md animate-pulse'></div>
     );
   }
 
@@ -61,12 +65,10 @@ export default function UserProfileCard({
   if (!currentUser) return null;
 
   return (
-    <div className='flex w-[18rem] absolute bottom-8 right-4 z-50 items-center justify-between rounded-lg bg-[#333338] p-3 text-white shadow-md'>
+    <div className='flex w-[18rem] absolute bottom-8 right-4 z-50 items-center justify-between rounded-lg bg-[#202024] p-3 text-white shadow-md'>
       <div className='flex items-center gap-3'>
         {/* Avatar Placeholder */}
-        <div className='flex h-8 w-8 items-center justify-center rounded-full bg-blue-600 text-xl'>
-          <FaUser size={16} />
-        </div>
+        <UserAvatar user={userProfile} bgColor='#202024' />
 
         {/* User Info & Status */}
         <div className='flex flex-col'>
@@ -74,8 +76,9 @@ export default function UserProfileCard({
             {profile?.name || 'User'}
           </span>
           <div className='flex items-center gap-1'>
-            <span className='h-2 w-2 rounded-full bg-green-500'></span>
-            <span className='text-xs text-gray-400'>Online (Placeholder)</span>
+            <span className='text-xs text-gray-400'>
+              {userProfile?.custom_activity}
+            </span>
           </div>
         </div>
       </div>

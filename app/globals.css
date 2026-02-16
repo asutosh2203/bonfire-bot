@@ -18,15 +18,13 @@ body {
   font-family: Arial, Helvetica, sans-serif;
 }
 
-.markdown-content p {
-  margin-bottom: 1rem; /* Space between paragraphs */
-}
-
+.markdown-content p,
 .markdown-content li {
   margin-bottom: 0.75rem; /* Space between paragraphs */
 }
 
-.markdown-content p:last-child {
+.markdown-content p:last-child,
+.markdown-content li:last-child {
   margin-bottom: 0; /* No space after the last paragraph */
 }
 
@@ -43,7 +41,7 @@ body {
 
 /* Inline code (e.g. `code`) */
 .markdown-content code {
-  background-color: rgba(255, 255, 255, 0.15);
+  /* background-color: rgba(255, 255, 255, 0.15); */
   padding: 0.1rem 0.3rem;
   border-radius: 0.25rem;
   font-family: monospace;
@@ -66,7 +64,7 @@ body {
 }
 
 ::-webkit-scrollbar-track {
-  background: #1A1A1E; /* dark slate */
+  background: #1a1a1e; /* dark slate */
 }
 
 ::-webkit-scrollbar-thumb {
@@ -82,5 +80,5 @@ body {
 /* Firefox */
 * {
   scrollbar-width: thin;
-  scrollbar-color: #334155 #1A1A1E;
+  scrollbar-color: #334155 #1a1a1e;
 }

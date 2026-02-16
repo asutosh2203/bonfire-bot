@@ -2,7 +2,7 @@ import { createBrowserClient } from '@supabase/ssr';
 
 let client: ReturnType<typeof createBrowserClient> | undefined;
 
-export function createBrowClient() {
+export function createBrowClient(): ReturnType<typeof createBrowserClient> {
   if (!client) {
     client = createBrowserClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
