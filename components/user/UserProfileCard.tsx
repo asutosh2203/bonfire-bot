@@ -10,6 +10,7 @@ import { useProfileStore } from '@/store/useProfileStore';
 import { FaGear, FaUser } from 'react-icons/fa6';
 import { RiLogoutCircleRLine } from 'react-icons/ri';
 import UserAvatar from './UserAvatar';
+import SettingsModal from './UserSettingsModal';
 
 export default function UserProfileCard({
   user,
@@ -22,8 +23,9 @@ export default function UserProfileCard({
 
   const setCurrentUser = useUserStore((state) => state.setCurrentUser);
   const currentUser = useUserStore((state) => state.currentUser);
-  const setUserProfile = useProfileStore((state) => state.setUserProfile);
   const userProfile = useProfileStore((state) => state.userProfile);
+
+  const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
 
   const isLoading = !user || !profile;
 
@@ -57,7 +59,7 @@ export default function UserProfileCard({
   // Skeleton loader so the UI doesn't jump around before the user loads
   if (isLoading) {
     return (
-      <div className='flex w-[18rem] h-14 absolute bottom-8 right-4 z-50 rounded-lg bg-[#202024] p-3 shadow-md animate-pulse'></div>
+      <div className='flex w-[18rem] h-14 absolute bottom-[30px] right-4 z-50 rounded-lg bg-[#202024] p-3 shadow-md animate-pulse'></div>
     );
   }
 
@@ -65,40 +67,50 @@ export default function UserProfileCard({
   if (!currentUser) return null;
 
   return (
-    <div className='flex w-[18rem] absolute bottom-8 right-4 z-50 items-center justify-between rounded-lg bg-[#202024] p-3 text-white shadow-md'>
-      <div className='flex items-center gap-3'>
-        {/* Avatar Placeholder */}
-        <UserAvatar user={userProfile} bgColor='#202024' />
+    <>
+      <div className='flex w-[18rem] absolute bottom-[30px] right-4 z-50 items-center justify-between rounded-lg bg-[#202024] p-3 text-white shadow-md'>
+        <div className='flex items-center gap-3'>
+          {/* Avatar Placeholder */}
+          <UserAvatar user={userProfile} bgColor='#202024' />
 
-        {/* User Info & Status */}
-        <div className='flex flex-col'>
-          <span className='text-xs font-semibold'>
-            {profile?.name || 'User'}
-          </span>
-          <div className='flex items-center gap-1'>
-            <span className='text-xs text-gray-400'>
-              {userProfile?.custom_activity}
+          {/* User Info & Status */}
+          <div className='flex flex-col'>
+            <span className='text-xs font-semibold'>
+              {profile?.name || 'User'}
             </span>
+            <div className='flex items-center gap-1'>
+              <span className='text-xs text-gray-400'>
+                {userProfile?.custom_activity}
+              </span>
+            </div>
           </div>
         </div>
-      </div>
 
-      {/* Action Buttons */}
-      <div className='flex items-center text-gray-400'>
-        <button
-          className='rounded-md p-2 hover:bg-gray-800 hover:text-white transition-colors'
-          title='Settings'
-        >
-          <FaGear size={16} />
-        </button>
-        <button
-          onClick={handleLogout}
-          className='rounded-md p-2 gap-2 hover:bg-red-900/50 hover:text-red-400 transition-colors'
-          title='Logout'
-        >
-          <RiLogoutCircleRLine size={16} />
-        </button>
+        {/* Action Buttons */}
+        <div className='flex items-center text-gray-400'>
+          <button
+            className='rounded-md p-2 hover:bg-gray-800 hover:text-white transition-colors cursor-pointer'
+            title='Settings'
+            onClick={() => setIsSettingsModalOpen(true)}
+          >
+            <FaGear size={16} />
+          </button>
+          <button
+            onClick={handleLogout}
+            className='rounded-md p-2 gap-2 hover:bg-red-900/50 hover:text-red-400 transition-colors cursor-pointer'
+            title='Logout'
+          >
+            <RiLogoutCircleRLine size={16} />
+          </button>
+        </div>
       </div>
-    </div>
+      {isSettingsModalOpen && (
+        <SettingsModal
+          key={isSettingsModalOpen ? 'open' : 'closed'}
+          isOpen={isSettingsModalOpen}
+          onClose={() => setIsSettingsModalOpen(false)}
+        />
+      )}
+    </>
   );
 }

@@ -1,5 +1,6 @@
 'use client';
 import { FaMinusCircle } from 'react-icons/fa';
+import { FaCircle } from 'react-icons/fa6';
 import { FiUser } from 'react-icons/fi';
 import { IoMdMoon } from 'react-icons/io';
 
@@ -14,7 +15,11 @@ const UserAvatar = ({ user, bgColor = '#1A1A1E' }: UserAvatarProps) => {
     switch (status) {
       case 'online':
         return (
-          <div className='h-3 w-3 rounded-full border-2 border-transparent bg-green-500' />
+          <div
+            className={`flex h-4 w-4 items-center justify-center rounded-full border-2 border-transparent bg-[${bgColor}]`}
+          >
+            <FaCircle size={10} className='text-green-500' />
+          </div>
         );
       case 'idle':
         return (
@@ -36,6 +41,7 @@ const UserAvatar = ({ user, bgColor = '#1A1A1E' }: UserAvatarProps) => {
         return null;
     }
   };
+
   return (
     <div className='relative flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#4A5565] text-xl'>
       {user?.avatar_url ? (
