@@ -7,7 +7,7 @@ import { createBrowClient } from '@/lib/supabase/client'; // Adjust this import 
 import { useUserStore } from '@/store/useUserStore';
 import { useProfileStore } from '@/store/useProfileStore';
 
-import { FaGear, FaUser } from 'react-icons/fa6';
+import { FaGear } from 'react-icons/fa6';
 import { RiLogoutCircleRLine } from 'react-icons/ri';
 import UserAvatar from './UserAvatar';
 import SettingsModal from './UserSettingsModal';
@@ -23,7 +23,6 @@ export default function UserProfileCard({
 
   const setCurrentUser = useUserStore((state) => state.setCurrentUser);
   const currentUser = useUserStore((state) => state.currentUser);
-  const userProfile = useProfileStore((state) => state.userProfile);
 
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
 
@@ -34,7 +33,6 @@ export default function UserProfileCard({
   // Set user and profile to global state
   useEffect(() => {
     setCurrentUser(user);
-    // setUserProfile(profile);
   }, [user, profile]);
 
   // auth subscription
@@ -71,7 +69,7 @@ export default function UserProfileCard({
       <div className='flex w-[18rem] absolute bottom-[30px] right-4 z-50 items-center justify-between rounded-lg bg-[#202024] p-3 text-white shadow-md'>
         <div className='flex items-center gap-3'>
           {/* Avatar Placeholder */}
-          <UserAvatar user={userProfile} bgColor='#202024' />
+          <UserAvatar user={profile} bgColor='#202024' />
 
           {/* User Info & Status */}
           <div className='flex flex-col'>
@@ -80,7 +78,7 @@ export default function UserProfileCard({
             </span>
             <div className='flex items-center gap-1'>
               <span className='text-xs text-gray-400'>
-                {userProfile?.custom_activity}
+                {profile?.custom_activity}
               </span>
             </div>
           </div>

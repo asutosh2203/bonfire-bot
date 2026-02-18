@@ -16,6 +16,8 @@ import { AiFillEyeInvisible } from 'react-icons/ai';
 import { useUserStore } from '@/store/useUserStore';
 import { useProfileStore } from '@/store/useProfileStore';
 import { createBrowClient } from '@/lib/supabase/client';
+import EditProfileModal from './EditProfileModal';
+import Image from 'next/image';
 
 export default function SettingsModal({
   isOpen,
@@ -35,6 +37,8 @@ export default function SettingsModal({
     profile?.custom_activity || '',
   );
   const [isSaving, setIsSaving] = useState(false);
+
+  const [isEditProfileModalOpen, setIsEditProfileModalOpen] = useState(false);
 
   if (!isOpen || !profile) return null;
 
@@ -107,117 +111,128 @@ export default function SettingsModal({
   };
 
   return (
-    <div
-      className='fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm'
-      onClick={onClose}
-    >
-      {/* Modal Container */}
+    <>
       <div
-        className='w-80 overflow-hidden rounded-xl border border-white/10 bg-[#1A1A1E] shadow-2xl'
-        onClick={(e) => e.stopPropagation()} // Prevent clicking inside from closing it
+        className='fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm'
+        onClick={onClose}
       >
-        {/* Header Banner */}
-        <div className='h-16 bg-[#ff5405]'></div>
-
-        <div className='px-4 pb-4'>
-          {/* Avatar & Status Row */}
-          <div className='relative -mt-8 mb-3 flex items-end justify-between'>
-            <div className='relative flex h-16 w-16 items-center justify-center rounded-full border-4 border-[#1A1A1E] bg-gray-700 text-3xl text-white'>
-              {profile.avatar_url ? (
-                <img
-                  src={profile.avatar_url}
-                  alt='Avatar'
-                  className='h-full w-full rounded-full object-cover'
-                />
-              ) : (
-                <FiUser />
-              )}
-              <div className='absolute -bottom-1 -right-1 bg-[#1A1A1E] rounded-full h-5 w-5 flex items-center justify-center'>
-                {renderStatusBadge(profile.preferred_status)}
+        {/* Modal Container */}
+        <div
+          className='w-80 overflow-hidden rounded-xl border border-white/10 bg-[#1A1A1E] shadow-2xl'
+          onClick={(e) => e.stopPropagation()} // Prevent clicking inside from closing it
+        >
+          {/* Header Banner */}
+          <div className='h-16 bg-[#ff5405]'></div>
+          <div className='px-4 pb-4'>
+            {/* Avatar & Status Row */}
+            <div className='relative -mt-8 mb-3 flex items-end justify-between'>
+              <div className='relative flex h-16 w-16 items-center justify-center rounded-full border-4 border-[#1A1A1E] bg-gray-700 text-3xl text-white'>
+                {profile.avatar_url ? (
+                  <Image
+                    src={profile.avatar_url}
+                    alt='Avatar'
+                    className='h-full w-full rounded-full object-cover'
+                    width={64}
+                    height={64}
+                  />
+                ) : (
+                  <FiUser />
+                )}
+                <div className='absolute -bottom-1 -right-1 bg-[#1A1A1E] rounded-full h-5 w-5 flex items-center justify-center'>
+                  {renderStatusBadge(profile.preferred_status)}
+                </div>
               </div>
             </div>
-          </div>
 
-          {/* User Info */}
-          <div className='mb-4'>
-            <h2 className='text-xl font-bold text-white'>{profile.name}</h2>
-          </div>
+            {/* User Info */}
+            <div className='mb-4'>
+              <h2 className='text-xl font-bold text-white'>{profile.name}</h2>
+            </div>
 
-          {/* Custom Activity Input */}
-          <div className='mb-6'>
-            <label className='mb-1 block text-xs font-bold uppercase tracking-wider text-gray-400'>
-              Custom Activity
-            </label>
-            <div className='flex items-center gap-2 rounded-md bg-black/30 p-1 border border-white/5 focus-within:border-[#ff5405] transition-colors'>
-              <input
-                type='text'
-                value={activityText}
-                onChange={(e) => setActivityText(e.target.value)}
-                placeholder="What's cooking?"
-                className='w-full bg-transparent p-2 text-sm text-white outline-none placeholder:text-gray-600'
-                maxLength={100}
-              />
-              {activityText && (
+            {/* Custom Activity Input */}
+            <div className='mb-6'>
+              <label className='mb-1 block text-xs font-bold uppercase tracking-wider text-gray-400'>
+                Custom Activity
+              </label>
+              <div className='flex items-center gap-2 rounded-md bg-black/30 p-1 border border-white/5 focus-within:border-[#ff5405] transition-colors'>
+                <input
+                  type='text'
+                  value={activityText}
+                  onChange={(e) => setActivityText(e.target.value)}
+                  placeholder="What's cooking?"
+                  className='w-full bg-transparent p-2 text-sm text-white outline-none placeholder:text-gray-600'
+                  maxLength={100}
+                />
+                {activityText && (
+                  <button
+                    onClick={handleActivityClear}
+                    className='p-2 text-gray-400 hover:text-white hover:bg-white/5 rounded transition-colors cursor-pointer'
+                  >
+                    <FiX />
+                  </button>
+                )}
                 <button
-                  onClick={handleActivityClear}
-                  className='p-2 text-gray-400 hover:text-white hover:bg-white/5 rounded transition-colors cursor-pointer'
+                  onClick={handleActivitySave}
+                  disabled={
+                    isSaving || activityText === profile.custom_activity
+                  }
+                  className='rounded bg-[#ff5405] p-2 text-white hover:bg-[#ff4c05] disabled:opacity-50 transition-colors cursor-pointer'
                 >
-                  <FiX />
+                  <FiCheck />
                 </button>
-              )}
+              </div>
+            </div>
+
+            <div className='h-px w-full bg-white/10 mb-4' />
+
+            {/* Status Selectors */}
+            <div className='flex flex-col gap-1'>
               <button
-                onClick={handleActivitySave}
-                disabled={isSaving || activityText === profile.custom_activity}
-                className='rounded bg-[#ff5405] p-2 text-white hover:bg-[#ff4c05] disabled:opacity-50 transition-colors cursor-pointer'
+                onClick={() => handleStatusChange('online')}
+                className='flex items-center gap-3 rounded-md p-2 text-sm text-gray-300 transition-colors hover:bg-white/5 hover:text-white cursor-pointer'
               >
-                <FiCheck />
+                {renderStatusBadge('online')}
+                Online
+              </button>
+              <button
+                onClick={() => handleStatusChange('idle')}
+                className='flex items-center gap-3 rounded-md p-2 text-sm text-gray-300 transition-colors hover:bg-white/5 hover:text-white cursor-pointer group'
+              >
+                {renderStatusBadge('idle')}
+                Idle
+              </button>
+              <button
+                onClick={() => handleStatusChange('dnd')}
+                className='flex items-center gap-3 rounded-md p-2 text-sm text-gray-300 transition-colors hover:bg-white/5 hover:text-white cursor-pointer group'
+              >
+                {renderStatusBadge('dnd')}
+                Do Not Disturb
+              </button>
+              <button
+                onClick={() => handleStatusChange('invisible')}
+                className='flex items-center gap-3 rounded-md p-2 text-sm text-gray-300 transition-colors hover:bg-white/5 hover:text-white cursor-pointer group'
+              >
+                {renderStatusBadge('invisible')}
+                Invisible
               </button>
             </div>
           </div>
-
-          <div className='h-px w-full bg-white/10 mb-4' />
-
-          {/* Status Selectors */}
-          <div className='flex flex-col gap-1'>
+          {/* Footer */}
+          <div className='bg-black/40 p-3 flex justify-end'>
             <button
-              onClick={() => handleStatusChange('online')}
-              className='flex items-center gap-3 rounded-md p-2 text-sm text-gray-300 transition-colors hover:bg-white/5 hover:text-white cursor-pointer'
+              onClick={() => setIsEditProfileModalOpen(true)}
+              className='flex items-center gap-2 rounded-md bg-white/5 px-3 py-2 text-sm font-medium text-gray-300 transition-colors hover:bg-white/10 hover:text-white'
             >
-              {renderStatusBadge('online')}
-              Online
-            </button>
-            <button
-              onClick={() => handleStatusChange('idle')}
-              className='flex items-center gap-3 rounded-md p-2 text-sm text-gray-300 transition-colors hover:bg-white/5 hover:text-white cursor-pointer group'
-            >
-              {renderStatusBadge('idle')}
-              Idle
-            </button>
-            <button
-              onClick={() => handleStatusChange('dnd')}
-              className='flex items-center gap-3 rounded-md p-2 text-sm text-gray-300 transition-colors hover:bg-white/5 hover:text-white cursor-pointer group'
-            >
-              {renderStatusBadge('dnd')}
-              Do Not Disturb
-            </button>
-            <button
-              onClick={() => handleStatusChange('invisible')}
-              className='flex items-center gap-3 rounded-md p-2 text-sm text-gray-300 transition-colors hover:bg-white/5 hover:text-white cursor-pointer group'
-            >
-              {renderStatusBadge('invisible')}
-              Invisible
+              <FiSettings size={14} />
+              Edit Profile
             </button>
           </div>
         </div>
-
-        {/* Footer */}
-        <div className='bg-black/40 p-3 flex justify-end'>
-          <button className='flex items-center gap-2 rounded-md bg-white/5 px-3 py-2 text-sm font-medium text-gray-300 transition-colors hover:bg-white/10 hover:text-white'>
-            <FiSettings size={14} />
-            Edit Profile
-          </button>
-        </div>
       </div>
-    </div>
+      <EditProfileModal
+        isOpen={isEditProfileModalOpen}
+        onClose={() => setIsEditProfileModalOpen(false)}
+      />
+    </>
   );
 }

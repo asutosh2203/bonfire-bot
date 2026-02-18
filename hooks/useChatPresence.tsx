@@ -54,7 +54,7 @@ export function useChatPresence(roomId: string) {
               preferred_status: profile.preferred_status,
               custom_activity: profile.custom_activity,
               name: profile.name,
-              //   avatar_url: profile.avatar_url,
+              avatar_url: profile.avatar_url,
             });
           }
         }

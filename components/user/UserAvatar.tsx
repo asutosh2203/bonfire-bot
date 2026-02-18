@@ -1,4 +1,5 @@
 'use client';
+import Image from 'next/image';
 import { FaMinusCircle } from 'react-icons/fa';
 import { FaCircle } from 'react-icons/fa6';
 import { FiUser } from 'react-icons/fi';
@@ -45,10 +46,12 @@ const UserAvatar = ({ user, bgColor = '#1A1A1E' }: UserAvatarProps) => {
   return (
     <div className='relative flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#4A5565] text-xl'>
       {user?.avatar_url ? (
-        <img
+        <Image
           src={user.avatar_url}
           alt={user.name}
-          className='h-full w-full rounded-full object-cover'
+          className='h-10 w-10 rounded-full object-cover'
+          width={40}
+          height={40}
         />
       ) : (
         <FiUser className='text-white' />

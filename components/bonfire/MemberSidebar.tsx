@@ -4,9 +4,6 @@ import { useProfileStore } from '@/store/useProfileStore';
 import { useUserStore } from '@/store/useUserStore';
 import { useEffect } from 'react';
 
-import { FaMinusCircle } from 'react-icons/fa';
-import { FiUser } from 'react-icons/fi';
-import { IoMdMoon } from 'react-icons/io';
 import UserAvatar from '../user/UserAvatar';
 
 export default function MemberSidebar({

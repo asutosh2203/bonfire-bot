@@ -17,16 +17,14 @@ export default async function DashboardLayout({
 
   if (!user) redirect('/');
 
-  let profileData = null;
-
   // 2. Fetch the extra profile data using the secure ID
-  const { data } = await supabase
+  const { data: profileData } = await supabase
     .from('profiles')
-    .select('name, email, preferred_status, custom_activity')
+    .select(
+      'name, email, preferred_status, custom_activity, username, avatar_url',
+    )
     .eq('id', user.id)
     .single();
-
-  profileData = data;
 
   // 2. Data Fetching
   const rooms = await getMyRooms();
@@ -35,7 +33,8 @@ export default async function DashboardLayout({
     // Flex row: Sidebar | Content
     <div className='flex h-screen w-full bg-[#313338] overflow-hidden relative'>
       <Sidebar rooms={rooms} />
-      <UserProfileCard user={user} profile={profileData} />
+      {profileData && <UserProfileCard user={user} profile={profileData} />}
+
       {/* Main Content Area */}
       <main className='flex-1 flex flex-col min-w-0 bg-[#313338]'>
         {children}
