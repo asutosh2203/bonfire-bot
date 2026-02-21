@@ -30,7 +30,7 @@ export default function MessageList({
         .from('messages')
         .select(
           `*,
-           profiles ( name ),
+           profiles ( name, avatar_url ),
            parent_message:parent_message_id (
              id,
              content,
@@ -72,8 +72,7 @@ export default function MessageList({
             event: 'INSERT',
             schema: 'public',
             table: 'messages',
-            // ⚠️ Temporarily REMOVING the filter to see if that's the blocker
-            // filter: `room_id=eq.${roomId}`
+            filter: `room_id=eq.${roomId}`
           },
           async (payload: any) => {
             // Manual Filter (since we removed the server-side one)
@@ -82,7 +81,7 @@ export default function MessageList({
             // Fetch the profile for the sender
             const { data: profile } = await supabase
               .from('profiles')
-              .select('name') // Updated schema
+              .select('name, avatar_url') // Updated schema
               .eq('id', payload.new.user_id)
               .single();
 

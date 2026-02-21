@@ -1,26 +1,28 @@
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import fs from 'fs';
+import path from 'path';
 import { NextResponse } from 'next/server';
 import { analyzeVibeV2 } from '@/lib/analysis/sentiment';
 import { supabaseAdmin } from '@/lib/supabase/admin';
 import { recallMemories, storeMemory } from '@/lib/memory/memory';
 import { createPrompt } from '@/lib/gemini';
+import { generateText, ModelMessage, stepCountIs } from 'ai';
+import { createGoogleGenerativeAI } from '@ai-sdk/google';
+import { buildBonfireTools } from '@/tools/updateStatus';
 
 export async function POST(req: Request) {
   try {
     const apiKey = process.env.GEMINI_API_KEY;
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
     const supabaseSecretKey = process.env.SUPABASE_SECRET_KEY;
     const BONFIRE_ID = '00000000-0000-0000-0000-000000000001';
 
-    if (!apiKey || !supabaseUrl || !supabaseKey || !supabaseSecretKey) {
+    if (!apiKey || !supabaseSecretKey) {
       return NextResponse.json(
         { text: 'Error: API Key is missing' },
         { status: 500 },
       );
     }
 
-    const genAI = new GoogleGenerativeAI(apiKey);
+    const google = createGoogleGenerativeAI({ apiKey });
 
     const { message, userContext, summonedBy, roomId } = await req.json();
 
@@ -36,7 +38,7 @@ export async function POST(req: Request) {
     const isSummoned = lowerMsg.includes('@bonfire'); // Tagged?
 
     // Feed Bonfire the last 20 messages
-    // 1. Fetch from DB
+    // Fetch from DB
     const { data: historyData } = await supabaseAdmin
       .from('messages')
       .select(`content, user_id, is_ai, created_at, sender: user_id(name)`)
@@ -56,6 +58,7 @@ export async function POST(req: Request) {
     const lastSender = Array.isArray(lastMessage?.sender)
       ? lastMessage.sender[0]
       : lastMessage?.sender;
+
     const analysis = await analyzeVibeV2(message, userContext.name, {
       previousMessage: lastMessage?.content,
       previousSender: lastSender?.name,
@@ -65,9 +68,8 @@ export async function POST(req: Request) {
     console.log('🧠 Brain scan:', JSON.stringify(analysis, null, 2));
 
     if (
-      analysis.intensity > 7 ||
-      analysis.intent === 'flex' ||
-      analysis.intent === 'memorize'
+      analysis.intensity > 7 &&
+      (analysis.intent === 'flex' || analysis.intent === 'memorize')
     ) {
       storeMemory(
         historyData?.[0].user_id,
@@ -151,72 +153,93 @@ export async function POST(req: Request) {
     // 🧠 Fetch relevant memories
     const relevantMemories = await recallMemories(message);
 
-    const tools: any = [
-      {
-        googleSearch: {},
-      },
-    ];
+    // Format for Gemini
+    // We need to reverse it so it's chronological (Oldest -> Newest)
+    let formattedHistory: ModelMessage[] = (historyData || [])
+      .reverse()
+      .map((msg: any) => ({
+        role: msg.is_ai ? 'assistant' : 'user',
+        content: msg.content,
+      }));
 
-    const model = genAI.getGenerativeModel({
-      model: 'gemini-2.5-flash',
-      tools: tools,
-      systemInstruction: createPrompt(
+    if (
+      formattedHistory.length > 0 &&
+      formattedHistory[0].role === 'assistant'
+    ) {
+      formattedHistory.shift();
+    }
+
+    const { text, steps } = await generateText({
+      model: google('gemini-2.5-flash'),
+      system: createPrompt(
         systemDirectorNote,
         relevantMemories,
         userContext,
         room?.name || 'The Chat',
       ),
+      messages: formattedHistory,
+      tools: {
+        ...buildBonfireTools(
+          supabaseAdmin,
+          historyData?.[historyData.length - 1].user_id,
+        ),
+      },
+      stopWhen: stepCountIs(3), // 🔥 Allows her to act, observe, and then speak
     });
 
-    // 2. Format for Gemini
-    // We need to reverse it so it's chronological (Oldest -> Newest)
-    let formattedHistory = (historyData || []).reverse().map((msg: any) => ({
-      role: msg.is_ai ? 'model' : 'user', // 'model' = Bot, 'user' = Human
-      parts: [{ text: msg.content }],
-    }));
+    // 📝 Log steps to file for debugging
+    const logEntry = {
+      timestamp: new Date().toISOString(),
+      roomId,
+      user: userContext.name,
+      steps: steps,
+    };
+    const logPath = path.join(process.cwd(), 'bonfire-steps.log');
+    fs.appendFileSync(
+      logPath,
+      JSON.stringify(logEntry, null, 2) + '\n---\n',
+      'utf-8',
+    );
 
-    if (formattedHistory.length > 0 && formattedHistory[0].role === 'model') {
-      formattedHistory.shift();
-    }
+    // 2. Dig into the steps array to find the search_the_web results
+    const searchToolResults = steps
+      .flatMap((step) => step.toolResults)
+      .filter((result) => result.toolName === 'search_the_web');
 
-    const chat = model.startChat({ history: formattedHistory });
+    // 3. Extract your URLs safely
+    let sources: { title: string; url: string }[] = [];
 
-    const result = await chat.sendMessage(message);
-    const response = result.response.text(); // response text
+    if (searchToolResults.length > 0) {
+      console.log(
+        '🔍 Search Results:',
+        JSON.stringify(searchToolResults, null, 2),
+      );
+      // Accessing the exact { success, results } object we returned in the tool
+      const rawData = searchToolResults[0]?.output as any;
 
-    // Extract search metadata from Bonfire response
-    const candidates = result.response.candidates || [];
-    const groundingMetadata = candidates[0]?.groundingMetadata;
+      console.log('🔍 Raw Data:', rawData);
 
-    let sources: ({ title: string; url: string } | null)[] = [];
-
-    if (groundingMetadata?.groundingChunks) {
-      sources = groundingMetadata.groundingChunks
-        .map((chunk: any) => {
-          const web = chunk.web;
-          if (!web) return null;
-
-          return {
-            title: (web.title as string) || 'Source',
-            url: (web.uri as string) || (web.url as string),
-          };
-        })
-        .filter((item: any) => item !== null); // Remove empty entries
+      if (rawData?.success) {
+        sources = rawData.results.map((item: any) => ({
+          title: item.title,
+          url: item.url,
+        }));
+      }
     }
 
     await supabaseAdmin.from('messages').insert({
-      content: response,
+      content: text,
       room_id: roomId,
       user_id: BONFIRE_ID,
       is_ai: true,
       summoned_by: summonedBy,
       metadata: {
-        sources: sources,
-        searchQuery: groundingMetadata?.webSearchQueries?.[0], // Store what she searched for
+        toolCalls: steps.map((s: any) => s.toolCalls),
+        sources,
       },
     });
 
-    return NextResponse.json({ text: response });
+    return NextResponse.json({ text });
   } catch (error: any) {
     console.error('💥 CRASH:', error);
     return NextResponse.json({ text: error.message }, { status: 500 });

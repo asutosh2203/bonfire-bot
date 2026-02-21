@@ -1,5 +1,6 @@
 import { getMyRooms } from '@/app/actions';
 import Sidebar from '@/components/bonfire/Sidebar';
+import ProfileRealtimeListener from '@/components/user/ProfileRealtimeListener';
 import UserProfileCard from '@/components/user/UserProfileCard';
 import { createServClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
@@ -32,6 +33,7 @@ export default async function DashboardLayout({
   return (
     // Flex row: Sidebar | Content
     <div className='flex h-screen w-full bg-[#313338] overflow-hidden relative'>
+      <ProfileRealtimeListener userId={user.id} />
       <Sidebar rooms={rooms} />
       {profileData && <UserProfileCard user={user} profile={profileData} />}
 
