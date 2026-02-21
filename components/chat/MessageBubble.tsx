@@ -15,6 +15,7 @@ export type Message = {
   is_ai: boolean;
   profiles: {
     name: string;
+    avatar_url: string;
   };
   metadata: {
     sources: { title: string; url: string }[];
@@ -52,7 +53,7 @@ export default function MessageBubble({ message, isCompact }: Props) {
       .join('')
       .toUpperCase();
   };
-
+  
   return (
     <div
       className={`flex gap-4 group p-2 ${
@@ -69,9 +70,11 @@ export default function MessageBubble({ message, isCompact }: Props) {
       {/* Avatar Column */}
       <div className='w-12 flex justify-center'>
         {!isCompact && (
-          <div className='w-10 h-10 rounded-full bg-gray-600 flex items-center justify-center cursor-pointer hover:opacity-80 transition text-sm font-medium text-white select-none'>
-            {message.is_ai ? 'AI' : getInitials(message.profiles?.name)}
-          </div>
+          <img
+            src={message.profiles?.avatar_url}
+            alt={message.profiles?.name}
+            className='w-10 h-10 rounded-full bg-gray-600 flex items-center justify-center cursor-pointer hover:opacity-80 transition text-sm font-medium text-white select-none'
+          />
         )}
         {isCompact && (
           <span className='text-[10px] mt-1 text-gray-500 opacity-0 group-hover:opacity-100 select-none'>
