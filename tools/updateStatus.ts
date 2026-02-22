@@ -6,6 +6,8 @@ import search_the_web from './search';
 export const buildBonfireTools = (
   supabase: SupabaseClient,
   userId: string,
+  roomId: string,
+  botId: string,
 ) => ({
   update_profile_status: tool({
     description: 'Update the user profile status and activity text.',
@@ -49,5 +51,43 @@ export const buildBonfireTools = (
   }),
 
   search_the_web,
-  // Future tools (like kick_user or clear_chat) will snap right in here
+  create_poll: tool({
+    description:
+      'Create an interactive voting poll for the chat room. Use this when users are deciding on something or arguing.',
+    inputSchema: z.object({
+      question: z.string().describe('The main question or topic of the poll.'),
+      options: z
+        .array(z.string())
+        .min(2)
+        .max(5) // Keep her in check so she doesn't spam 20 options
+        .describe('An array of 2 to 5 short options to vote on.'),
+    }),
+    execute: async ({ question, options }) => {
+      console.log(`Bonfire is creating a poll: ${question}`);
+
+      // 1. Insert directly into the messages stream
+      const { data, error } = await supabase
+        .from('messages')
+        .insert({
+          content: question, // Fallback text for push notifications
+          room_id: roomId,
+          user_id: botId, // This message officially belongs to Bonfire
+          is_ai: true,
+          message_type: 'poll', // 👈 THE ROUTER FLAG
+          metadata: {
+            question,
+            options,
+          },
+        })
+        .select('id')
+        .single();
+
+      if (error) {
+        console.error('Bonfire fumbled the poll creation:', error);
+        return { success: false, error: error.message };
+      }
+
+      return { success: true, messageId: data.id, question };
+    },
+  }),
 });

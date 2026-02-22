@@ -182,24 +182,28 @@ export async function POST(req: Request) {
         ...buildBonfireTools(
           supabaseAdmin,
           historyData?.[historyData.length - 1].user_id,
+          roomId,
+          BONFIRE_ID,
         ),
       },
       stopWhen: stepCountIs(3), // 🔥 Allows her to act, observe, and then speak
     });
 
     // 📝 Log steps to file for debugging
-    const logEntry = {
-      timestamp: new Date().toISOString(),
-      roomId,
-      user: userContext.name,
-      steps: steps,
-    };
-    const logPath = path.join(process.cwd(), 'bonfire-steps.log');
-    fs.appendFileSync(
-      logPath,
-      JSON.stringify(logEntry, null, 2) + '\n---\n',
-      'utf-8',
-    );
+    if (process.env.NODE_ENV === 'development') {
+      const logEntry = {
+        timestamp: new Date().toISOString(),
+        roomId,
+        user: userContext.name,
+        steps: steps,
+      };
+      const logPath = path.join(process.cwd(), 'bonfire-steps.log');
+      fs.appendFileSync(
+        logPath,
+        JSON.stringify(logEntry, null, 2) + '\n---\n',
+        'utf-8',
+      );
+    }
 
     // 2. Dig into the steps array to find the search_the_web results
     const searchToolResults = steps
@@ -210,14 +214,8 @@ export async function POST(req: Request) {
     let sources: { title: string; url: string }[] = [];
 
     if (searchToolResults.length > 0) {
-      console.log(
-        '🔍 Search Results:',
-        JSON.stringify(searchToolResults, null, 2),
-      );
       // Accessing the exact { success, results } object we returned in the tool
       const rawData = searchToolResults[0]?.output as any;
-
-      console.log('🔍 Raw Data:', rawData);
 
       if (rawData?.success) {
         sources = rawData.results.map((item: any) => ({

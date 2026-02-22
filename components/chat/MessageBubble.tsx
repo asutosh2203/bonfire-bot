@@ -5,6 +5,7 @@ import { Globe, ExternalLink } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import ReactionModal from './ReactionModal';
 import { HiOutlineReply } from 'react-icons/hi';
+import PollCard from './PollCard';
 
 // Define the Message type here to be self-contained or import if you have a shared type
 export type Message = {
@@ -17,9 +18,12 @@ export type Message = {
     name: string;
     avatar_url: string;
   };
+  message_type?: string;
   metadata: {
     sources: { title: string; url: string }[];
     searchQuery: string;
+    question?: string;
+    options?: string[];
   };
   parent_message: any;
 };
@@ -53,7 +57,7 @@ export default function MessageBubble({ message, isCompact }: Props) {
       .join('')
       .toUpperCase();
   };
-  
+
   return (
     <div
       className={`flex gap-4 group p-2 ${
@@ -123,13 +127,21 @@ export default function MessageBubble({ message, isCompact }: Props) {
             </div>
           </div>
         )}
-        <div
-          className={`markdown-content text-gray-100 text-sm ${
-            isCompact ? '' : 'mt-1'
-          }`}
-        >
-          <ReactMarkdown>{message.content}</ReactMarkdown>
-        </div>
+        {message.message_type === 'poll' ? (
+          <PollCard
+            messageId={message.id}
+            question={message.metadata?.question || ''}
+            options={message.metadata?.options || []}
+          />
+        ) : (
+          <div
+            className={`markdown-content text-gray-100 text-sm ${
+              isCompact ? '' : 'mt-1'
+            }`}
+          >
+            <ReactMarkdown>{message.content}</ReactMarkdown>
+          </div>
+        )}
         {/* Citation chips */}
         {sources.length > 0 && (
           <div className='mt-3 flex flex-wrap gap-2 pt-3 border-t border-white/10'>

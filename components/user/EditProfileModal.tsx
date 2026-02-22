@@ -319,13 +319,13 @@ export default function EditProfileModal({
                         className={`w-full rounded-md border bg-[#1E1E22] p-3 text-sm text-[#F5F5F7] outline-none transition-colors ${getUsernameBorder()}`}
                       />
                       {isAvailable === false && (
-                        <span className='absolute right-3 top-3 text-xs font-bold text-[#E74C3C]'>
+                        <span className='absolute right-3 top-[15px] text-xs font-bold text-[#E74C3C]'>
                           Taken
                         </span>
                       )}
                       {isAvailable === true &&
                         username !== profile.username && (
-                          <span className='absolute right-3 top-3 text-xs font-bold text-[#2ECC71]'>
+                          <span className='absolute right-3 top-[15px] text-xs font-bold text-[#2ECC71]'>
                             Available
                           </span>
                         )}
